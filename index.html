@@ -59,7 +59,7 @@ header .sub{font-size:11px;color:var(--mut)}
   #lejant{display:none}
   #lejant.acik{display:block;font-size:11px;line-height:1.9}
   #lejantBtn{display:block !important}
-  #panel{left:8px;right:8px;top:auto;bottom:8px;width:auto;max-height:60vh}
+  #panel,#raporPanel,#raporListePanel{left:8px !important;right:8px !important;top:auto !important;bottom:8px !important;width:auto !important;max-height:65vh !important}
 }
 #lejantBtn{display:none;position:absolute;left:14px;bottom:14px;z-index:45}
 </style>
@@ -74,6 +74,8 @@ header .sub{font-size:11px;color:var(--mut)}
   <button class="btn" id="kilitBtn" onclick="kilitToggle()" style="background:#5a4a26">🔒 Konumlar kilitli</button>
   <button class="btn" onclick="ekle('db')">+ DB ekle</button>
   <button class="btn" onclick="ekle('pano')">+ ÇAP/Pano ekle</button>
+  <button class="btn" style="background:#2e6b3a" onclick="raporAc()">📝 Rapor Ekle</button>
+  <button class="btn" onclick="raporListeAc()">📋 Raporlar (<span id="rsay">0</span>)</button>
   <button class="btn" onclick="disaAktar()">JSON dışa aktar</button>
   <button class="btn" onclick="iceAktarSec()">JSON içe aktar</button>
   <input type="file" id="dosya" accept=".json" style="display:none">
@@ -95,10 +97,12 @@ header .sub{font-size:11px;color:var(--mut)}
   <button class="btn" id="lejantBtn" onclick="document.getElementById('lejant').classList.toggle('acik')">Lejant</button>
   <div id="ipucu">Tekerlek: yakınlaştır • Boş alan: kaydır • Markör: tıkla = düzenle + fotoğraf, sürükle = taşı</div>
   <div id="panel"></div>
+  <div id="raporPanel" style="display:none;position:absolute;right:14px;top:14px;width:290px;max-height:calc(100% - 28px);overflow-y:auto;background:rgba(21,34,46,.97);border-radius:10px;padding:14px;font-size:13px;z-index:70"></div>
+  <div id="raporListePanel" style="display:none;position:absolute;right:14px;top:14px;width:300px;max-height:calc(100% - 28px);overflow-y:auto;background:rgba(21,34,46,.97);border-radius:10px;padding:14px;font-size:13px;z-index:70"></div>
 </div>
 <div id="buyuk" onclick="this.style.display='none'"><span class="kapa">✕</span><img id="buyukimg"></div>
 <script>
-const ORJ = {"dbs": [{"id": "01", "x": 0.1888, "y": 0.2573, "montaj": true, "kablo": false, "revize": false, "not": "", "fotolar": []}, {"id": "02", "x": 0.066, "y": 0.2627, "montaj": true, "kablo": false, "revize": false, "not": "", "fotolar": []}, {"id": "03", "x": 0.2321, "y": 0.2522, "montaj": true, "kablo": true, "revize": false, "not": "", "fotolar": []}, {"id": "04", "x": 0.2893, "y": 0.2272, "montaj": true, "kablo": true, "revize": false, "not": "", "fotolar": []}, {"id": "05", "x": 0.3333, "y": 0.2414, "montaj": true, "kablo": true, "revize": false, "not": "", "fotolar": []}, {"id": "06", "x": 0.38, "y": 0.23, "montaj": true, "kablo": false, "revize": false, "not": "", "fotolar": []}, {"id": "07", "x": 0.4184, "y": 0.2265, "montaj": true, "kablo": false, "revize": false, "not": "", "fotolar": []}, {"id": "08", "x": 0.1608, "y": 0.3949, "montaj": true, "kablo": false, "revize": false, "not": "", "fotolar": []}, {"id": "09", "x": 0.1988, "y": 0.5003, "montaj": true, "kablo": true, "revize": false, "not": "", "fotolar": []}, {"id": "10", "x": 0.241, "y": 0.6053, "montaj": true, "kablo": true, "revize": false, "not": "", "fotolar": []}, {"id": "11", "x": 0.2837, "y": 0.6528, "montaj": true, "kablo": false, "revize": false, "not": "", "fotolar": []}, {"id": "12", "x": 0.2644, "y": 0.7311, "montaj": true, "kablo": true, "revize": true, "not": "", "fotolar": []}, {"id": "13", "x": 0.2291, "y": 0.7014, "montaj": true, "kablo": false, "revize": false, "not": "", "fotolar": []}, {"id": "14", "x": 0.1871, "y": 0.6143, "montaj": false, "kablo": true, "revize": false, "not": "", "fotolar": []}, {"id": "15", "x": 0.1205, "y": 0.4681, "montaj": true, "kablo": true, "revize": false, "not": "", "fotolar": []}, {"id": "16", "x": 0.2362, "y": 0.3821, "montaj": true, "kablo": false, "revize": false, "not": "", "fotolar": []}, {"id": "17", "x": 0.2842, "y": 0.5126, "montaj": true, "kablo": false, "revize": false, "not": "", "fotolar": []}, {"id": "18", "x": 0.2903, "y": 0.6038, "montaj": true, "kablo": false, "revize": false, "not": "", "fotolar": []}, {"id": "19", "x": 0.3453, "y": 0.5853, "montaj": true, "kablo": false, "revize": false, "not": "", "fotolar": []}, {"id": "20", "x": 0.3072, "y": 0.3195, "montaj": true, "kablo": true, "revize": false, "not": "", "fotolar": []}, {"id": "21", "x": 0.3107, "y": 0.4858, "montaj": false, "kablo": false, "revize": false, "not": "", "fotolar": []}, {"id": "22", "x": 0.3326, "y": 0.4134, "montaj": true, "kablo": true, "revize": false, "not": "", "fotolar": []}, {"id": "23", "x": 0.3666, "y": 0.4075, "montaj": true, "kablo": true, "revize": false, "not": "", "fotolar": []}, {"id": "24", "x": 0.3882, "y": 0.532, "montaj": true, "kablo": true, "revize": false, "not": "", "fotolar": []}, {"id": "25", "x": 0.4509, "y": 0.3258, "montaj": true, "kablo": true, "revize": false, "not": "", "fotolar": []}, {"id": "26", "x": 0.3692, "y": 0.2903, "montaj": true, "kablo": true, "revize": false, "not": "", "fotolar": []}, {"id": "27", "x": 0.4981, "y": 0.3449, "montaj": true, "kablo": true, "revize": true, "not": "", "fotolar": []}, {"id": "28", "x": 0.4443, "y": 0.2052, "montaj": true, "kablo": true, "revize": true, "not": "", "fotolar": []}, {"id": "29", "x": 0.4964, "y": 0.2145, "montaj": true, "kablo": true, "revize": true, "not": "", "fotolar": []}, {"id": "30", "x": 0.59, "y": 0.309, "montaj": true, "kablo": true, "revize": true, "not": "", "fotolar": []}, {"id": "31", "x": 0.8135, "y": 0.5722, "montaj": true, "kablo": true, "revize": true, "not": "", "fotolar": []}, {"id": "32", "x": 0.9521, "y": 0.8104, "montaj": true, "kablo": false, "revize": false, "not": "", "fotolar": []}, {"id": "33", "x": 0.7234, "y": 0.6187, "montaj": true, "kablo": false, "revize": true, "not": "", "fotolar": []}, {"id": "34", "x": 0.8651, "y": 0.6224, "montaj": true, "kablo": false, "revize": true, "not": "", "fotolar": []}, {"id": "35", "x": 0.7474, "y": 0.6925, "montaj": true, "kablo": true, "revize": true, "not": "", "fotolar": []}, {"id": "36", "x": 0.7443, "y": 0.7272, "montaj": true, "kablo": false, "revize": true, "not": "", "fotolar": []}, {"id": "37", "x": 0.8901, "y": 0.7311, "montaj": true, "kablo": false, "revize": true, "not": "", "fotolar": []}, {"id": "38", "x": 0.8216, "y": 0.7439, "montaj": true, "kablo": false, "revize": true, "not": "", "fotolar": []}, {"id": "39", "x": 0.7692, "y": 0.7693, "montaj": true, "kablo": false, "revize": false, "not": "", "fotolar": []}, {"id": "40", "x": 0.457, "y": 0.7119, "montaj": true, "kablo": false, "revize": false, "not": "", "fotolar": []}, {"id": "41", "x": 0.4003, "y": 0.5964, "montaj": true, "kablo": false, "revize": false, "not": "", "fotolar": []}, {"id": "42", "x": 0.4763, "y": 0.6699, "montaj": true, "kablo": false, "revize": false, "not": "", "fotolar": []}, {"id": "43", "x": 0.4718, "y": 0.5136, "montaj": true, "kablo": false, "revize": false, "not": "", "fotolar": []}, {"id": "44", "x": 0.5253, "y": 0.6056, "montaj": true, "kablo": false, "revize": true, "not": "", "fotolar": []}, {"id": "45", "x": 0.6547, "y": 0.5466, "montaj": true, "kablo": false, "revize": true, "not": "", "fotolar": []}, {"id": "46", "x": 0.315, "y": 0.7561, "montaj": true, "kablo": false, "revize": false, "not": "", "fotolar": []}, {"id": "47", "x": 0.3844, "y": 0.8076, "montaj": true, "kablo": false, "revize": false, "not": "", "fotolar": []}, {"id": "48", "x": 0.4204, "y": 0.8174, "montaj": true, "kablo": false, "revize": false, "not": "", "fotolar": []}, {"id": "49", "x": 0.5464, "y": 0.4077, "montaj": false, "kablo": false, "revize": false, "not": "", "fotolar": []}, {"id": "50", "x": 0.6485, "y": 0.2469, "montaj": true, "kablo": false, "revize": true, "not": "", "fotolar": []}, {"id": "51", "x": 0.6672, "y": 0.1505, "montaj": false, "kablo": false, "revize": false, "not": "", "fotolar": []}, {"id": "52", "x": 0.6064, "y": 0.1586, "montaj": true, "kablo": false, "revize": true, "not": "", "fotolar": []}, {"id": "53", "x": 0.5327, "y": 0.1663, "montaj": true, "kablo": false, "revize": false, "not": "", "fotolar": []}, {"id": "54", "x": 0.7434, "y": 0.2223, "montaj": true, "kablo": false, "revize": true, "not": "", "fotolar": []}, {"id": "55", "x": 0.754, "y": 0.1279, "montaj": false, "kablo": false, "revize": false, "not": "", "fotolar": []}, {"id": "56", "x": 0.412, "y": 0.4147, "montaj": true, "kablo": true, "revize": false, "not": "", "fotolar": []}, {"id": "57", "x": 0.2285, "y": 0.4834, "montaj": true, "kablo": false, "revize": false, "not": "", "fotolar": []}], "panos": [{"kod": "A-O19-HK", "x": 0.4622, "y": 0.4347, "montaj": false, "not": "", "fotolar": []}, {"kod": "A-O20-ÇAP", "x": 0.3983, "y": 0.3279, "montaj": true, "not": "", "fotolar": []}, {"kod": "C-O10-HK", "x": 0.4154, "y": 0.6606, "montaj": false, "not": "", "fotolar": []}, {"kod": "C-O13-HK", "x": 0.4844, "y": 0.2694, "montaj": false, "not": "", "fotolar": []}, {"kod": "C-O16-ÇAP", "x": 0.5609, "y": 0.2677, "montaj": false, "not": "", "fotolar": []}, {"kod": "C-O4-ÇAP", "x": 0.866, "y": 0.7273, "montaj": false, "not": "", "fotolar": []}, {"kod": "C-O5-ÇAP", "x": 0.7767, "y": 0.6057, "montaj": false, "not": "", "fotolar": []}, {"kod": "C-O6-HK", "x": 0.7927, "y": 0.6818, "montaj": false, "not": "", "fotolar": []}, {"kod": "C-O9-ÇAP", "x": 0.3619, "y": 0.7717, "montaj": true, "not": "", "fotolar": []}, {"kod": "K-BV-ÇAP", "x": 0.8638, "y": 0.8562, "montaj": false, "not": "", "fotolar": []}, {"kod": "SH-ÇAP-01", "x": 0.6777, "y": 0.2159, "montaj": false, "not": "", "fotolar": []}, {"kod": "SH-ÇAP-02", "x": 0.5357, "y": 0.5329, "montaj": false, "not": "", "fotolar": []}, {"kod": "V-O21-HP", "x": 0.3072, "y": 0.3195, "montaj": false, "not": "", "fotolar": []}, {"kod": "V-O22-HK", "x": 0.2915, "y": 0.4301, "montaj": false, "not": "", "fotolar": []}, {"kod": "V-O23A-HP", "x": 0.3472, "y": 0.4109, "montaj": false, "not": "", "fotolar": []}, {"kod": "V-O23B-HP", "x": 0.3882, "y": 0.532, "montaj": false, "not": "", "fotolar": []}, {"kod": "V-O24A-HK", "x": 0.1941, "y": 0.3767, "montaj": false, "not": "", "fotolar": []}, {"kod": "V-O24B-HP", "x": 0.2362, "y": 0.3821, "montaj": false, "not": "", "fotolar": []}, {"kod": "V-O25A-HP", "x": 0.2285, "y": 0.4834, "montaj": false, "not": "", "fotolar": []}, {"kod": "V-O25B-HP", "x": 0.2842, "y": 0.5126, "montaj": false, "not": "", "fotolar": []}, {"kod": "V-O26A-HP", "x": 0.2903, "y": 0.6038, "montaj": false, "not": "", "fotolar": []}, {"kod": "V-O26B-HP", "x": 0.3453, "y": 0.5853, "montaj": false, "not": "", "fotolar": []}, {"kod": "V-O27-ÇAP", "x": 0.2619, "y": 0.2442, "montaj": true, "not": "", "fotolar": []}, {"kod": "V-O28-HP", "x": 0.1466, "y": 0.4207, "montaj": false, "not": "", "fotolar": []}, {"kod": "V-O29-HP", "x": 0.1932, "y": 0.5548, "montaj": false, "not": "", "fotolar": []}, {"kod": "V-O30-HP", "x": 0.2521, "y": 0.6677, "montaj": false, "not": "", "fotolar": []}]};
+const ORJ = {"dbs": [{"id": "01", "x": 0.1888, "y": 0.2573, "montaj": true, "kablo": false, "revize": false, "not": "", "fotolar": []}, {"id": "02", "x": 0.066, "y": 0.2627, "montaj": true, "kablo": false, "revize": false, "not": "", "fotolar": []}, {"id": "03", "x": 0.2321, "y": 0.2522, "montaj": true, "kablo": true, "revize": false, "not": "", "fotolar": []}, {"id": "04", "x": 0.2893, "y": 0.2272, "montaj": true, "kablo": true, "revize": false, "not": "", "fotolar": []}, {"id": "05", "x": 0.3333, "y": 0.2414, "montaj": true, "kablo": true, "revize": false, "not": "", "fotolar": []}, {"id": "06", "x": 0.38, "y": 0.23, "montaj": true, "kablo": false, "revize": false, "not": "", "fotolar": []}, {"id": "07", "x": 0.4184, "y": 0.2265, "montaj": true, "kablo": false, "revize": false, "not": "", "fotolar": []}, {"id": "08", "x": 0.1608, "y": 0.3949, "montaj": true, "kablo": false, "revize": false, "not": "", "fotolar": []}, {"id": "09", "x": 0.1988, "y": 0.5003, "montaj": true, "kablo": true, "revize": false, "not": "", "fotolar": []}, {"id": "10", "x": 0.241, "y": 0.6053, "montaj": true, "kablo": true, "revize": false, "not": "", "fotolar": []}, {"id": "11", "x": 0.2837, "y": 0.6528, "montaj": true, "kablo": false, "revize": false, "not": "", "fotolar": []}, {"id": "12", "x": 0.2644, "y": 0.7311, "montaj": true, "kablo": true, "revize": true, "not": "", "fotolar": []}, {"id": "13", "x": 0.2291, "y": 0.7014, "montaj": true, "kablo": false, "revize": false, "not": "", "fotolar": []}, {"id": "14", "x": 0.1871, "y": 0.6143, "montaj": false, "kablo": true, "revize": false, "not": "", "fotolar": []}, {"id": "15", "x": 0.1205, "y": 0.4681, "montaj": true, "kablo": true, "revize": false, "not": "", "fotolar": []}, {"id": "16", "x": 0.2362, "y": 0.3821, "montaj": true, "kablo": false, "revize": false, "not": "", "fotolar": []}, {"id": "17", "x": 0.2842, "y": 0.5126, "montaj": true, "kablo": false, "revize": false, "not": "", "fotolar": []}, {"id": "18", "x": 0.2903, "y": 0.6038, "montaj": true, "kablo": false, "revize": false, "not": "", "fotolar": []}, {"id": "19", "x": 0.3453, "y": 0.5853, "montaj": true, "kablo": false, "revize": false, "not": "", "fotolar": []}, {"id": "20", "x": 0.3072, "y": 0.3195, "montaj": true, "kablo": true, "revize": false, "not": "", "fotolar": []}, {"id": "21", "x": 0.3107, "y": 0.4858, "montaj": false, "kablo": false, "revize": false, "not": "", "fotolar": []}, {"id": "22", "x": 0.3326, "y": 0.4134, "montaj": true, "kablo": true, "revize": false, "not": "", "fotolar": []}, {"id": "23", "x": 0.3666, "y": 0.4075, "montaj": true, "kablo": true, "revize": false, "not": "", "fotolar": []}, {"id": "24", "x": 0.3882, "y": 0.532, "montaj": true, "kablo": true, "revize": false, "not": "", "fotolar": []}, {"id": "25", "x": 0.4509, "y": 0.3258, "montaj": true, "kablo": true, "revize": false, "not": "", "fotolar": []}, {"id": "26", "x": 0.3692, "y": 0.2903, "montaj": true, "kablo": true, "revize": false, "not": "", "fotolar": []}, {"id": "27", "x": 0.4981, "y": 0.3449, "montaj": true, "kablo": true, "revize": true, "not": "", "fotolar": []}, {"id": "28", "x": 0.4443, "y": 0.2052, "montaj": true, "kablo": true, "revize": true, "not": "", "fotolar": []}, {"id": "29", "x": 0.4964, "y": 0.2145, "montaj": true, "kablo": true, "revize": true, "not": "", "fotolar": []}, {"id": "30", "x": 0.59, "y": 0.309, "montaj": true, "kablo": true, "revize": true, "not": "", "fotolar": []}, {"id": "31", "x": 0.8135, "y": 0.5722, "montaj": true, "kablo": true, "revize": true, "not": "", "fotolar": []}, {"id": "32", "x": 0.9521, "y": 0.8104, "montaj": true, "kablo": false, "revize": false, "not": "", "fotolar": []}, {"id": "33", "x": 0.7234, "y": 0.6187, "montaj": true, "kablo": false, "revize": true, "not": "", "fotolar": []}, {"id": "34", "x": 0.8651, "y": 0.6224, "montaj": true, "kablo": false, "revize": true, "not": "", "fotolar": []}, {"id": "35", "x": 0.7474, "y": 0.6925, "montaj": true, "kablo": true, "revize": true, "not": "", "fotolar": []}, {"id": "36", "x": 0.7443, "y": 0.7272, "montaj": true, "kablo": false, "revize": true, "not": "", "fotolar": []}, {"id": "37", "x": 0.8901, "y": 0.7311, "montaj": true, "kablo": false, "revize": true, "not": "", "fotolar": []}, {"id": "38", "x": 0.8216, "y": 0.7439, "montaj": true, "kablo": false, "revize": true, "not": "", "fotolar": []}, {"id": "39", "x": 0.7692, "y": 0.7693, "montaj": true, "kablo": false, "revize": false, "not": "", "fotolar": []}, {"id": "40", "x": 0.457, "y": 0.7119, "montaj": true, "kablo": false, "revize": false, "not": "", "fotolar": []}, {"id": "41", "x": 0.4003, "y": 0.5964, "montaj": true, "kablo": false, "revize": false, "not": "", "fotolar": []}, {"id": "42", "x": 0.4763, "y": 0.6699, "montaj": true, "kablo": false, "revize": false, "not": "", "fotolar": []}, {"id": "43", "x": 0.4718, "y": 0.5136, "montaj": true, "kablo": false, "revize": false, "not": "", "fotolar": []}, {"id": "44", "x": 0.5253, "y": 0.6056, "montaj": true, "kablo": false, "revize": true, "not": "", "fotolar": []}, {"id": "45", "x": 0.6547, "y": 0.5466, "montaj": true, "kablo": false, "revize": true, "not": "", "fotolar": []}, {"id": "46", "x": 0.315, "y": 0.7561, "montaj": true, "kablo": false, "revize": false, "not": "", "fotolar": []}, {"id": "47", "x": 0.3844, "y": 0.8076, "montaj": true, "kablo": false, "revize": false, "not": "", "fotolar": []}, {"id": "48", "x": 0.4204, "y": 0.8174, "montaj": true, "kablo": false, "revize": false, "not": "", "fotolar": []}, {"id": "49", "x": 0.5464, "y": 0.4077, "montaj": false, "kablo": false, "revize": false, "not": "", "fotolar": []}, {"id": "50", "x": 0.6485, "y": 0.2469, "montaj": true, "kablo": false, "revize": true, "not": "", "fotolar": []}, {"id": "51", "x": 0.6672, "y": 0.1505, "montaj": false, "kablo": false, "revize": false, "not": "", "fotolar": []}, {"id": "52", "x": 0.6064, "y": 0.1586, "montaj": true, "kablo": false, "revize": true, "not": "", "fotolar": []}, {"id": "53", "x": 0.5327, "y": 0.1663, "montaj": true, "kablo": false, "revize": false, "not": "", "fotolar": []}, {"id": "54", "x": 0.7434, "y": 0.2223, "montaj": true, "kablo": false, "revize": true, "not": "", "fotolar": []}, {"id": "55", "x": 0.754, "y": 0.1279, "montaj": false, "kablo": false, "revize": false, "not": "", "fotolar": []}, {"id": "56", "x": 0.412, "y": 0.4147, "montaj": true, "kablo": true, "revize": false, "not": "", "fotolar": []}, {"id": "57", "x": 0.2285, "y": 0.4834, "montaj": true, "kablo": false, "revize": false, "not": "", "fotolar": []}], "panos": [{"kod": "A-O19-HK", "x": 0.4622, "y": 0.4347, "montaj": false, "not": "", "fotolar": []}, {"kod": "A-O20-ÇAP", "x": 0.3983, "y": 0.3279, "montaj": true, "not": "", "fotolar": []}, {"kod": "C-O10-HK", "x": 0.4154, "y": 0.6606, "montaj": false, "not": "", "fotolar": []}, {"kod": "C-O13-HK", "x": 0.4844, "y": 0.2694, "montaj": false, "not": "", "fotolar": []}, {"kod": "C-O16-ÇAP", "x": 0.5609, "y": 0.2677, "montaj": false, "not": "", "fotolar": []}, {"kod": "C-O4-ÇAP", "x": 0.866, "y": 0.7273, "montaj": false, "not": "", "fotolar": []}, {"kod": "C-O5-ÇAP", "x": 0.7767, "y": 0.6057, "montaj": false, "not": "", "fotolar": []}, {"kod": "C-O6-HK", "x": 0.7927, "y": 0.6818, "montaj": false, "not": "", "fotolar": []}, {"kod": "C-O9-ÇAP", "x": 0.3619, "y": 0.7717, "montaj": true, "not": "", "fotolar": []}, {"kod": "K-BV-ÇAP", "x": 0.8638, "y": 0.8562, "montaj": false, "not": "", "fotolar": []}, {"kod": "SH-ÇAP-01", "x": 0.6777, "y": 0.2159, "montaj": false, "not": "", "fotolar": []}, {"kod": "SH-ÇAP-02", "x": 0.5357, "y": 0.5329, "montaj": false, "not": "", "fotolar": []}, {"kod": "V-O21-HP", "x": 0.3072, "y": 0.3195, "montaj": false, "not": "", "fotolar": []}, {"kod": "V-O22-HK", "x": 0.2915, "y": 0.4301, "montaj": false, "not": "", "fotolar": []}, {"kod": "V-O23A-HP", "x": 0.3472, "y": 0.4109, "montaj": false, "not": "", "fotolar": []}, {"kod": "V-O23B-HP", "x": 0.3882, "y": 0.532, "montaj": false, "not": "", "fotolar": []}, {"kod": "V-O24A-HK", "x": 0.1941, "y": 0.3767, "montaj": false, "not": "", "fotolar": []}, {"kod": "V-O24B-HP", "x": 0.2362, "y": 0.3821, "montaj": false, "not": "", "fotolar": []}, {"kod": "V-O25A-HP", "x": 0.2285, "y": 0.4834, "montaj": false, "not": "", "fotolar": []}, {"kod": "V-O25B-HP", "x": 0.2842, "y": 0.5126, "montaj": false, "not": "", "fotolar": []}, {"kod": "V-O26A-HP", "x": 0.2903, "y": 0.6038, "montaj": false, "not": "", "fotolar": []}, {"kod": "V-O26B-HP", "x": 0.3453, "y": 0.5853, "montaj": false, "not": "", "fotolar": []}, {"kod": "V-O27-ÇAP", "x": 0.2619, "y": 0.2442, "montaj": true, "not": "", "fotolar": []}, {"kod": "V-O28-HP", "x": 0.1466, "y": 0.4207, "montaj": false, "not": "", "fotolar": []}, {"kod": "V-O29-HP", "x": 0.1932, "y": 0.5548, "montaj": false, "not": "", "fotolar": []}, {"kod": "V-O30-HP", "x": 0.2521, "y": 0.6677, "montaj": false, "not": "", "fotolar": []}], "raporlar": []};
 let data = JSON.parse(localStorage.getItem('bhs_pafta') || 'null') || JSON.parse(JSON.stringify(ORJ));
 const IW = 2202, IH = 1238;
 let scale = 0.6, ox = 0, oy = 0, secili = null, duzenleme = false;
@@ -316,6 +320,112 @@ document.getElementById('dosya').onchange = e=>{
   ox = (r.width - IW*scale)/2; oy = (r.height - IH*scale)/2;
 })();
 uygula(); ciz();
+
+// ================= RAPOR MODÜLÜ =================
+data.raporlar = data.raporlar || [];
+let raporFotolar = [];
+function bugun(){ const d=new Date(); return d.toISOString().slice(0,10); }
+function rsayGuncelle(){ const e=document.getElementById('rsay'); if(e) e.textContent = data.raporlar.length; }
+function raporAc(){
+  kapat(); document.getElementById('raporListePanel').style.display='none';
+  raporFotolar = [];
+  const p = document.getElementById('raporPanel');
+  const dbOpts = data.dbs.map((d,i)=>`<option value="db:${i}">DB ${d.id}</option>`).join('');
+  const pnOpts = data.panos.map((o,i)=>`<option value="pano:${i}">${o.kod}</option>`).join('');
+  p.style.display='block';
+  p.innerHTML = `
+    <h3 style="font-size:14px;margin-bottom:8px">📝 Günlük İmalat Raporu</h3>
+    <label style="display:block;padding:4px 0">Tarih<br><input type="date" id="rTarih" value="${bugun()}" style="width:100%;background:#0f1923;color:#fff;border:1px solid #33567a;border-radius:6px;padding:6px"></label>
+    <label style="display:block;padding:4px 0">Pano / DB<br>
+      <select id="rHedef" style="width:100%;background:#0f1923;color:#fff;border:1px solid #33567a;border-radius:6px;padding:6px">
+        <optgroup label="Driver Box">${dbOpts}</optgroup>
+        <optgroup label="ÇAP/HK/HP Panoları">${pnOpts}</optgroup>
+      </select></label>
+    <div style="font-weight:700;margin-top:6px">Yapılan iş</div>
+    <label style="display:flex;gap:8px;padding:4px 0"><input type="checkbox" id="rMontaj"> Pano montajı yapıldı</label>
+    <label style="display:flex;gap:8px;padding:4px 0"><input type="checkbox" id="rKablo"> Kablo imalatı yapıldı</label>
+    <label style="display:flex;gap:8px;padding:4px 0"><input type="checkbox" id="rRevize"> Revizyon yapıldı</label>
+    <div class="row" style="display:flex;gap:8px;margin-top:6px">
+      <label style="flex:1">Metraj (mt)<br><input type="number" id="rMetraj" min="0" style="width:100%;background:#0f1923;color:#fff;border:1px solid #33567a;border-radius:6px;padding:6px"></label>
+      <label style="flex:1">Adet<br><input type="number" id="rAdet" min="0" style="width:100%;background:#0f1923;color:#fff;border:1px solid #33567a;border-radius:6px;padding:6px"></label>
+    </div>
+    <textarea id="rNot" rows="2" placeholder="Açıklama (kablo tipi, hat no, ekip...)" style="width:100%;background:#0f1923;color:#fff;border:1px solid #33567a;border-radius:6px;padding:6px;margin-top:8px"></textarea>
+    <div style="margin-top:8px;font-weight:700;font-size:12px">Fotoğraf (<span id="rfsay">0</span>)</div>
+    <div class="row" style="display:flex;gap:6px;margin-top:6px">
+      <button class="btn" style="flex:1;background:#2e6b3a" onclick="document.getElementById('rfotokam').click()">📷 Kamera</button>
+      <button class="btn" style="flex:1" onclick="document.getElementById('rfotosec').click()">🖼️ Galeri</button>
+    </div>
+    <input type="file" id="rfotokam" accept="image/*" capture="environment" style="display:none">
+    <input type="file" id="rfotosec" accept="image/*" multiple style="display:none">
+    <div class="row" style="display:flex;gap:8px;margin-top:12px">
+      <button class="btn" style="flex:1;background:#1b5e20;font-weight:700" onclick="raporKaydet()">✓ KAYDET</button>
+      <button class="btn" onclick="document.getElementById('raporPanel').style.display='none'">Vazgeç</button>
+    </div>`;
+  const fy = async e=>{
+    for(const f of e.target.files){ raporFotolar.push(await kucult(f,1280,.8)); }
+    e.target.value=''; document.getElementById('rfsay').textContent = raporFotolar.length;
+  };
+  document.getElementById('rfotokam').onchange = fy;
+  document.getElementById('rfotosec').onchange = fy;
+}
+function raporKaydet(){
+  const hedef = document.getElementById('rHedef').value;
+  const [tip, ix] = hedef.split(':');
+  const i = parseInt(ix);
+  const r = {
+    tarih: document.getElementById('rTarih').value,
+    hedef: tip==='db' ? 'DB '+data.dbs[i].id : data.panos[i].kod,
+    montaj: document.getElementById('rMontaj').checked,
+    kablo: document.getElementById('rKablo').checked,
+    revize: document.getElementById('rRevize').checked,
+    metraj: document.getElementById('rMetraj').value || null,
+    adet: document.getElementById('rAdet').value || null,
+    not: document.getElementById('rNot').value || '',
+    fotolar: raporFotolar
+  };
+  if(!r.montaj && !r.kablo && !r.revize && !r.not && !r.metraj){ alert('En az bir iş işaretle veya açıklama yaz.'); return; }
+  data.raporlar.push(r);
+  // durumu otomatik işle
+  if(tip==='db'){
+    if(r.montaj) data.dbs[i].montaj = true;
+    if(r.kablo) data.dbs[i].kablo = true;
+    if(r.revize) data.dbs[i].revize = true;
+  } else {
+    if(r.montaj) data.panos[i].montaj = true;
+  }
+  document.getElementById('raporPanel').style.display='none';
+  rsayGuncelle(); ciz();
+  alert('Rapor kaydedildi, pafta güncellendi. ' + r.hedef);
+}
+function raporListeAc(){
+  kapat(); document.getElementById('raporPanel').style.display='none';
+  const p = document.getElementById('raporListePanel');
+  p.style.display='block';
+  const list = data.raporlar.slice().reverse().map((r,ri)=>{
+    const gi = data.raporlar.length-1-ri;
+    const isler = [r.montaj?'montaj':null, r.kablo?'kablo':null, r.revize?'revizyon':null].filter(Boolean).join(' + ') || '-';
+    const fot = (r.fotolar||[]).map((s,fi)=>`<img src="${s}" style="width:46px;height:36px;object-fit:cover;border-radius:4px;cursor:pointer;margin:2px" onclick="rBuyut(${gi},${fi})">`).join('');
+    return `<div style="border-bottom:1px solid #26415a;padding:8px 0">
+      <b>${r.tarih}</b> — <b style="color:#4fc3f7">${r.hedef}</b><br>
+      <span style="color:#90a4ae">${isler}${r.metraj?' • '+r.metraj+' mt':''}${r.adet?' • '+r.adet+' adet':''}</span>
+      ${r.not?'<br><span style="font-size:12px">'+r.not+'</span>':''}
+      ${fot?'<br>'+fot:''}
+      <br><button class="btn warn" style="margin-top:4px;padding:3px 8px;font-size:10px" onclick="raporSil(${gi})">Sil</button>
+    </div>`;
+  }).join('') || '<div style="color:#90a4ae">Henüz rapor girilmedi.</div>';
+  p.innerHTML = `<h3 style="font-size:14px;margin-bottom:8px">📋 Rapor Geçmişi (${data.raporlar.length})</h3>${list}
+    <button class="btn" style="margin-top:10px;width:100%" onclick="this.parentElement.style.display='none'">Kapat</button>`;
+}
+function raporSil(gi){
+  if(!confirm('Bu rapor silinsin mi? (Markör durumu geri alınmaz)')) return;
+  data.raporlar.splice(gi,1); kaydet(); rsayGuncelle(); raporListeAc();
+}
+function rBuyut(gi,fi){
+  document.getElementById('buyukimg').src = data.raporlar[gi].fotolar[fi];
+  document.getElementById('buyuk').style.display = 'flex';
+}
+rsayGuncelle();
+
 </script>
 </body>
 </html>
