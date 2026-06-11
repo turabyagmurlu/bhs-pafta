@@ -59,7 +59,7 @@ header .sub{font-size:11px;color:var(--mut)}
   #lejant{display:none}
   #lejant.acik{display:block;font-size:11px;line-height:1.9}
   #lejantBtn{display:block !important}
-  #panel,#raporPanel,#raporListePanel{left:8px !important;right:8px !important;top:auto !important;bottom:8px !important;width:auto !important;max-height:65vh !important}
+  #panel,#raporPanel,#raporListePanel,#wpPanel{left:8px !important;right:8px !important;top:auto !important;bottom:8px !important;width:auto !important;max-height:65vh !important}
 }
 #lejantBtn{display:none;position:absolute;left:14px;bottom:14px;z-index:45}
 </style>
@@ -75,6 +75,7 @@ header .sub{font-size:11px;color:var(--mut)}
   <button class="btn" onclick="ekle('db')">+ DB ekle</button>
   <button class="btn" onclick="ekle('pano')">+ ÇAP/Pano ekle</button>
   <button class="btn" style="background:#2e6b3a" onclick="raporAc()">📝 Rapor Ekle</button>
+  <button class="btn" style="background:#1f5e4a" onclick="wpAc()">💬 WP Raporu Yapıştır</button>
   <button class="btn" onclick="raporListeAc()">📋 Raporlar (<span id="rsay">0</span>)</button>
   <button class="btn" onclick="disaAktar()">JSON dışa aktar</button>
   <button class="btn" onclick="iceAktarSec()">JSON içe aktar</button>
@@ -98,6 +99,7 @@ header .sub{font-size:11px;color:var(--mut)}
   <div id="ipucu">Tekerlek: yakınlaştır • Boş alan: kaydır • Markör: tıkla = düzenle + fotoğraf, sürükle = taşı</div>
   <div id="panel"></div>
   <div id="raporPanel" style="display:none;position:absolute;right:14px;top:14px;width:290px;max-height:calc(100% - 28px);overflow-y:auto;background:rgba(21,34,46,.97);border-radius:10px;padding:14px;font-size:13px;z-index:70"></div>
+  <div id="wpPanel" style="display:none;position:absolute;right:14px;top:14px;width:330px;max-height:calc(100% - 28px);overflow-y:auto;background:rgba(21,34,46,.97);border-radius:10px;padding:14px;font-size:13px;z-index:75"></div>
   <div id="raporListePanel" style="display:none;position:absolute;right:14px;top:14px;width:300px;max-height:calc(100% - 28px);overflow-y:auto;background:rgba(21,34,46,.97);border-radius:10px;padding:14px;font-size:13px;z-index:70"></div>
 </div>
 <div id="buyuk" onclick="this.style.display='none'"><span class="kapa">✕</span><img id="buyukimg"></div>
@@ -320,6 +322,99 @@ document.getElementById('dosya').onchange = e=>{
   ox = (r.width - IW*scale)/2; oy = (r.height - IH*scale)/2;
 })();
 uygula(); ciz();
+
+
+// ============ WHATSAPP METİN ÇÖZÜMLEYİCİ ============
+let wpBulgular = [];
+function wpAc(){
+  kapat(); document.getElementById('raporPanel').style.display='none';
+  document.getElementById('raporListePanel').style.display='none';
+  const p = document.getElementById('wpPanel');
+  p.style.display='block';
+  p.innerHTML = `
+    <h3 style="font-size:14px;margin-bottom:8px">💬 WhatsApp İmalat Raporu</h3>
+    <div style="color:#90a4ae;font-size:11px;margin-bottom:6px">Rapor metnini olduğu gibi yapıştır — DB/ÇAP numaralarını, yapılan işi ve tarihi ben bulurum.</div>
+    <textarea id="wpMetin" rows="9" placeholder="Örn:\n26 05 2026\nVilla 24 ve Altı\n1 adet Drover Box 03 Çevre Aydınlatma Panosu Montajı yapıldı..." style="width:100%;background:#0f1923;color:#fff;border:1px solid #33567a;border-radius:6px;padding:8px;font-size:12px"></textarea>
+    <button class="btn" style="width:100%;margin-top:8px;background:#2e6b3a" onclick="wpCozumle()">🔍 Metni Çözümle</button>
+    <div id="wpSonuc" style="margin-top:10px"></div>
+    <button class="btn" style="width:100%;margin-top:8px" onclick="document.getElementById('wpPanel').style.display='none'">Kapat</button>`;
+}
+function wpCozumle(){
+  const txt = document.getElementById('wpMetin').value;
+  if(!txt.trim()){ alert('Önce metni yapıştır.'); return; }
+  const lines = txt.split(/\n+/);
+  let tarih = null;
+  wpBulgular = [];
+  const seen = new Set();
+  const lc = s => s.toLocaleLowerCase('tr');
+  lines.forEach((ln,i)=>{
+    const dm = ln.match(/(\d{1,2})[\s./:-]+(\d{1,2})[\s./:-]+(20\d\d)/);
+    if(dm && !tarih) tarih = `${dm[3]}-${dm[2].padStart(2,'0')}-${dm[1].padStart(2,'0')}`;
+    const ctx = lc(lines.slice(Math.max(0,i), i+3).join(' '));
+    let is_ = null;
+    if(/reviz/.test(ctx)) is_ = 'revize';
+    else if(/montaj|monte|tak\u0131ld\u0131|takildi/.test(ctx)) is_ = 'montaj';
+    else if(/\u00e7ekildi|cekildi|besleme|paralel|parelel|linye|kablo/.test(ctx)) is_ = 'kablo';
+    if(!is_) return;
+    for(const m of ln.matchAll(/(?:dr[oai\u0131]?ver|drover)\s*box\s*:?\s*(?:db)?\s*[-:]?\s*(\d{1,2})|\bdb[\s:.-]*(\d{1,2})/gi)){
+      const no = parseInt(m[1]||m[2]);
+      const key = 'db'+no+is_;
+      if(no>=1 && no<=60 && !seen.has(key)){ seen.add(key); wpBulgular.push({tip:'db', no, is:is_, satir:ln.trim()}); }
+    }
+    for(const m of ln.matchAll(/\u00e7\.?\s*a\.?\s*p\.?\s*[:=]?\s*0?(\d{1,2})/gi)){
+      const no = parseInt(m[1]);
+      const key = 'cap'+no+is_;
+      if(no>=1 && no<=40 && !seen.has(key)){ seen.add(key); wpBulgular.push({tip:'cap', no, is:is_, satir:ln.trim()}); }
+    }
+  });
+  const s = document.getElementById('wpSonuc');
+  if(!wpBulgular.length){ s.innerHTML = '<div style="color:#ff9800">Metinde pano/DB + iş tespit edemedim. "Rapor Ekle" ile elle girebilirsin.</div>'; return; }
+  const renk = {montaj:'#19c37d', kablo:'#2196f3', revize:'#ff9800'};
+  s.innerHTML = `<div style="font-weight:700;margin-bottom:4px">Tespit edilenler (${tarih||'tarih bulunamadı'}):</div>` +
+    wpBulgular.map((b,j)=>`
+      <label style="display:flex;gap:8px;align-items:center;padding:4px 0;border-bottom:1px solid #26415a">
+        <input type="checkbox" checked id="wpb${j}">
+        <span style="flex:1"><b>${b.tip==='db'?'DB '+String(b.no).padStart(2,'0'):'ÇAP '+b.no}</b>
+        — <span style="color:${renk[b.is]}">${b.is==='montaj'?'montaj yapıldı':b.is==='kablo'?'kablo imalatı':'revizyon'}</span><br>
+        <span style="color:#7d93a3;font-size:10px">${b.satir.slice(0,60)}</span></span>
+      </label>`).join('') +
+    `<input type="date" id="wpTarih" value="${tarih||bugun()}" style="width:100%;margin-top:8px;background:#0f1923;color:#fff;border:1px solid #33567a;border-radius:6px;padding:6px">
+     <button class="btn" style="width:100%;margin-top:8px;background:#1b5e20;font-weight:700" onclick="wpUygula()">✓ Seçilenleri Paftaya İşle</button>`;
+}
+function wpUygula(){
+  const tarih = document.getElementById('wpTarih').value;
+  let uygulanan = 0, eslesmeyen = [];
+  wpBulgular.forEach((b,j)=>{
+    if(!document.getElementById('wpb'+j).checked) return;
+    if(b.tip==='db'){
+      const d = data.dbs.find(x=>parseInt(x.id)===b.no);
+      if(d){
+        if(b.is==='montaj') d.montaj = true;
+        if(b.is==='kablo') d.kablo = true;
+        if(b.is==='revize') d.revize = true;
+        data.raporlar.push({tarih, hedef:'DB '+String(b.no).padStart(2,'0'),
+          montaj:b.is==='montaj', kablo:b.is==='kablo', revize:b.is==='revize',
+          metraj:null, adet:null, not:'WP metninden: '+b.satir.slice(0,80), fotolar:[]});
+        uygulanan++;
+      } else eslesmeyen.push('DB '+b.no);
+    } else {
+      const pn = data.panos.find(x=>{ const m=x.kod.match(/O(\d+)/); return m && parseInt(m[1])===b.no; });
+      if(pn){
+        if(b.is==='montaj') pn.montaj = true;
+        data.raporlar.push({tarih, hedef:pn.kod, montaj:b.is==='montaj', kablo:false, revize:b.is==='revize',
+          metraj:null, adet:null, not:'WP metninden: '+b.satir.slice(0,80), fotolar:[]});
+        uygulanan++;
+      } else {
+        data.raporlar.push({tarih, hedef:'ÇAP '+b.no+' (kod eşleşmedi)', montaj:b.is==='montaj', kablo:false,
+          revize:b.is==='revize', metraj:null, adet:null, not:'WP metninden: '+b.satir.slice(0,80), fotolar:[]});
+        eslesmeyen.push('ÇAP '+b.no+' (rapora kaydedildi, markör güncellenmedi)');
+      }
+    }
+  });
+  rsayGuncelle(); ciz();
+  document.getElementById('wpPanel').style.display='none';
+  alert(`${uygulanan} kayıt paftaya işlendi.` + (eslesmeyen.length ? `\nEşleşmeyen: ${eslesmeyen.join(', ')}` : ''));
+}
 
 // ================= RAPOR MODÜLÜ =================
 data.raporlar = data.raporlar || [];
