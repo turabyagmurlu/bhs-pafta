@@ -102,7 +102,7 @@ header .sub{font-size:11px;color:var(--mut)}
     <div class="ib-yol"><div class="ib-dolu" id="bk-dolu" style="background:#2196f3"></div></div>
   </div>
   <div class="ibar" id="bar-pano" onclick="filtre('pano')">
-    <div class="ib-ust"><b>ÇAP/PANO MONTAJ</b><span id="bp-txt"></span></div>
+    <div class="ib-ust"><b>ÇAP MONTAJ</b><span id="bp-txt"></span></div>
     <div class="ib-yol"><div class="ib-dolu" id="bp-dolu" style="background:#26c6da"></div></div>
   </div>
 </div>
@@ -158,7 +158,8 @@ function filtre(tip){
 function barGuncelle(){
   const dm = data.dbs.filter(d=>d.montaj).length, dt = data.dbs.length;
   const dk = data.dbs.filter(d=>d.kablo).length;
-  const pm = data.panos.filter(p=>p.montaj).length, pt = data.panos.length;
+  const caplar = data.panos.filter(p=>(p.kod||'').toLocaleUpperCase('tr').includes('ÇAP'));
+  const pm = caplar.filter(p=>p.montaj).length, pt = caplar.length;
   const yz = (a,b)=> b? Math.round(a/b*100) : 0;
   document.getElementById('bm-txt').textContent = `${dm}/${dt} — %${yz(dm,dt)}`;
   document.getElementById('bm-dolu').style.width = yz(dm,dt)+'%';
@@ -190,14 +191,14 @@ function ciz(){
     el.textContent = p.kod.replace(/-/g,'‑'); el.title = p.kod;
     if((p.fotolar||[]).length){ const f=document.createElement('div'); f.className='fo'; f.textContent='📷'; el.appendChild(f); }
     if(secili && secili.tip==='pano' && secili.i===i) el.classList.add('sel');
-    if(aktifFiltre==='pano' && p.montaj) el.classList.add('soluk');
+    if(aktifFiltre==='pano' && (p.montaj || !(p.kod||'').toLocaleUpperCase('tr').includes('ÇAP'))) el.classList.add('soluk');
     if(aktifFiltre==='montaj' || aktifFiltre==='kablo') el.classList.add('soluk');
     surukle(el,'pano',i); el.onclick = e=>{ e.stopPropagation(); ac('pano',i); };
     mks.appendChild(el);
   });
   const m = data.dbs.filter(d=>d.montaj).length;
   barGuncelle();
-  document.getElementById('sayac').textContent = `${m}/${data.dbs.length} DB montajlı • ${data.panos.filter(p=>p.montaj).length}/${data.panos.length} pano montajlı`;
+  document.getElementById('sayac').textContent = `${m}/${data.dbs.length} DB montajlı • ${data.panos.filter(p=>p.montaj&&(p.kod||'').toLocaleUpperCase('tr').includes('ÇAP')).length}/${data.panos.filter(p=>(p.kod||'').toLocaleUpperCase('tr').includes('ÇAP')).length} ÇAP montajlı`;
   kaydet();
 }
 function nesne(){ return secili.tip==='db' ? data.dbs[secili.i] : data.panos[secili.i]; }
