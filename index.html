@@ -784,42 +784,104 @@ function wpCozumle(){
   const lines=txt.split(/\n+/);
   const lc=s=>s.toLocaleLowerCase('tr');
   let tarih=null; wpBulgular=[]; const seen=new Set();
-  const cekRe=/çekil|cekil|serild|çekim/;
+  const cekRe=/çekil|cekil|serild|çekim|çekti|cekti|çektik|cektik/;
+  const montajRe=/montaj|monte|tak[ıi]ld/;
+  const revizeRe=/reviz/;
   const kabloRe=/kablo|besleme|cat\s?6|cat6a|utp|lihch|lıhch|n2xh/;
   const kesitRe=/(\d+\s*[x×]\s*[\d.,]+)/;
-  const mtRe=/(\d+)\s*(?:metre|mt\b|m\b)/;
+  const mtRe=/(\d+)\s*(?:metre|mt\b|m\b)/i;
   const sinifBul=s=>{ s=lc(s); if(/cat\s?6|cat6a|utp/.test(s)) return 'data'; if(/lihch|lıhch/.test(s)) return 'kumanda'; if(/n2xh/.test(s)||/besleme/.test(s)||kesitRe.test(s)) return 'guc'; return 'belirsiz'; };
+  const padL=n=>'L'+String(n).padStart(2,'0');
+  function hedefBul(ln){
+    let m=ln.match(/(?:dr[oaiı]?ver\s*box|\bdb)\b[\s:.#=-]*0?(\d{1,2})/i);
+    if(m){ const no=parseInt(m[1]); if(no>=1&&no<=60) return {tip:'db',no,kod:'DB '+String(no).padStart(2,'0')}; }
+    const tipM=ln.match(/(ÇAP|CAP|HK|HP|DP)/i);
+    const oM=ln.match(/\bO\s*0?(\d{1,3})\b/i);
+    const capNumM=ln.match(/(?:ç\.?\s*a\.?\s*p|çap|cap)\s*[-:]?\s*0?(\d{1,3})/i);
+    if(oM && tipM){
+      const kodM=ln.match(/([A-ZÇ]\s*-?\s*O\s*0?\d{1,3}\s*-?\s*(?:ÇAP|CAP|HK|HP|DP))/i);
+      return {tip:'cap', no:parseInt(oM[1]), kod:kodM?kodM[1].replace(/\s+/g,'').toLocaleUpperCase('tr'):null};
+    }
+    if(oM && /^\s*[A-ZÇ]?\s*-?\s*o\s*0?\d/i.test(ln)) return {tip:'cap', no:parseInt(oM[1]), kod:null};
+    if(capNumM) return {tip:'cap', no:parseInt(capNumM[1]), kod:null};
+    return null;
+  }
+  let curHedef=null;
+  let blk={linye:[], besleme:[], montaj:false, revize:false, cek:false, satirlar:[]};
+  function sifirla(){ curHedef=null; blk={linye:[], besleme:[], montaj:false, revize:false, cek:false, satirlar:[]}; }
+  function blokBitir(){
+    if(!curHedef){
+      blk.besleme.forEach(b=> wpBulgular.push({tip:'harici',is:'kablo',sinif:b.sinif,kesit:b.kesit,metraj:b.metraj,satir:b.satir}));
+      if(blk.cek && !blk.besleme.length && !blk.linye.length){
+        const vs=blk.satirlar.find(x=>cekRe.test(lc(x))&&kabloRe.test(lc(x)));
+        if(vs) wpBulgular.push({tip:'harici',is:'kablo',sinif:'belirsiz',kesit:'',metraj:null,satir:vs.trim()});
+      }
+      sifirla(); return;
+    }
+    const H=curHedef; const durum=blk.revize?'revize':'cekildi';
+    blk.linye.forEach(L=>{
+      const key='lin'+H.tip+(H.kod||H.no)+L.linye;
+      if(seen.has(key)) return; seen.add(key);
+      wpBulgular.push({tip:'linye', hedefTip:H.tip, no:H.no, kod:H.kod, linye:L.linye, metraj:L.metraj, durum, satir:L.satir});
+    });
+    blk.besleme.forEach(b=>{
+      const key='bes'+H.tip+(H.kod||H.no)+b.sinif+(b.kesit||'');
+      if(seen.has(key)) return; seen.add(key);
+      wpBulgular.push({tip:H.tip, no:H.no, kod:H.kod, is:'kablo', sinif:b.sinif, kesit:b.kesit, metraj:b.metraj, satir:b.satir});
+    });
+    if(blk.montaj){
+      const key='mon'+H.tip+(H.kod||H.no);
+      if(!seen.has(key)){ seen.add(key); wpBulgular.push({tip:H.tip, no:H.no, kod:H.kod, is:'montaj', satir:(blk.satirlar.find(x=>montajRe.test(lc(x)))||H.kod||('DB '+H.no)).trim()}); }
+    }
+    if(blk.revize && !blk.linye.length && !blk.besleme.length){
+      const key='rev'+H.tip+(H.kod||H.no);
+      if(!seen.has(key)){ seen.add(key); wpBulgular.push({tip:H.tip, no:H.no, kod:H.kod, is:'revize', satir:(blk.satirlar.find(x=>revizeRe.test(lc(x)))||H.kod||('DB '+H.no)).trim()}); }
+    }
+    sifirla();
+  }
   lines.forEach(ln=>{
     const dm=ln.match(/(\d{1,2})[\s./:-]+(\d{1,2})[\s./:-]+(20\d\d)/);
     if(dm&&!tarih) tarih=dm[3]+'-'+dm[2].padStart(2,'0')+'-'+dm[1].padStart(2,'0');
     const s=lc(ln);
-    let is_=null;
-    if(/reviz/.test(s)) is_='revize';
-    else if(/montaj|monte|tak[ıi]ld[ıi]/.test(s)) is_='montaj';
-    else if(cekRe.test(s) && kabloRe.test(s)) is_='kablo';
-    if(!is_) return;
-    const kRaw=(ln.match(kesitRe)||[])[1];
-    const kesit=kRaw? kRaw.replace(/\s/g,'').replace('×','x').replace('.',',') : '';
-    const mt=(ln.match(mtRe)||[])[1]; const metraj=mt?parseInt(mt):null;
-    const sinif=is_==='kablo'? sinifBul(ln) : null;
-    let bulundu=false;
-    for(const m of ln.matchAll(/(?:dr[oaiı]?ver|drover)\s*box\s*:?\s*(?:db)?\s*[-:]?\s*(\d{1,2})|\bdb[\s:.-]*(\d{1,2})/gi)){
-      const no=parseInt(m[1]||m[2]); const key='db'+no+is_+(sinif||'');
-      if(no>=1&&no<=60&&!seen.has(key)){ seen.add(key); wpBulgular.push({tip:'db',no,is:is_,sinif,kesit,metraj,satir:ln.trim()}); bulundu=true; }
+    const H=hedefBul(ln);
+    if(H){ blokBitir(); curHedef=H; }
+    blk.satirlar.push(ln);
+    if(revizeRe.test(s)) blk.revize=true;
+    if(montajRe.test(s)) blk.montaj=true;
+    if(cekRe.test(s)) blk.cek=true;
+    let linyeBulundu=false;
+    for(const m of ln.matchAll(/\bL\s*0?(\d{1,3})\b\s*[:=-]?\s*(\d{1,4})?\s*(?:metre|mt|m)?/gi)){
+      const no=parseInt(m[1]); if(no<1||no>999) continue;
+      const metraj=m[2]?parseInt(m[2]):null;
+      blk.linye.push({linye:padL(no), metraj, satir:ln.trim()}); linyeBulundu=true;
     }
-    for(const m of ln.matchAll(/[çc]\.?\s*a\.?\s*p\.?\s*[:=]?\s*0?(\d{1,2})/gi)){
-      const no=parseInt(m[1]); const key='cap'+no+is_+(sinif||'');
-      if(no>=1&&no<=60&&!seen.has(key)){ seen.add(key); wpBulgular.push({tip:'cap',no,is:is_,sinif,kesit,metraj,satir:ln.trim()}); bulundu=true; }
+    if(!linyeBulundu && kabloRe.test(s) && (kesitRe.test(ln)||/cat\s?6|utp|lihch|lıhch|n2xh/i.test(ln))){
+      const kRaw=(ln.match(kesitRe)||[])[1];
+      const kesit=kRaw?kRaw.replace(/\s/g,'').replace('×','x').replace('.',','):'';
+      const mtM=ln.match(mtRe); const metraj=mtM?parseInt(mtM[1]):null;
+      blk.besleme.push({sinif:sinifBul(ln), kesit, metraj, satir:ln.trim()});
     }
-    if(!bulundu && is_==='kablo'){ wpBulgular.push({tip:'harici',no:null,is:'kablo',sinif,kesit,metraj,satir:ln.trim()}); }
   });
+  blokBitir();
   const out=document.getElementById('wpSonuc');
-  if(!wpBulgular.length){ out.innerHTML='<div style="color:#ff9800">Pafta ile ilgili kablo/montaj işi bulamadım (kırım, boru, reglaj gibi sarf işleri alınmaz).</div>'; return; }
-  const renk={montaj:'#19c37d',kablo:'#2196f3',revize:'#ff9800'};
+  if(!wpBulgular.length){ out.innerHTML='<div style="color:#ff9800">Pafta ile ilgili kablo/montaj/linye işi bulamadım (kırım, boru, reglaj gibi sarf işleri alınmaz).</div>'; return; }
+  const renk={montaj:'#19c37d',kablo:'#2196f3',revize:'#ff9800',linye:'#2196f3'};
   const sinifAd={guc:'besleme/güç',data:'data/CAT6',kumanda:'kumanda/LIHCH',belirsiz:'harici → nota'};
+  const hedAd=b=> b.tip==='db'?'DB '+String(b.no).padStart(2,'0') : b.tip==='harici'?'(hedef yok)' : (b.kod||('ÇAP '+b.no));
   out.innerHTML='<div style="font-weight:700;margin-bottom:4px">Tespit ('+(tarih||'tarih yok')+'):</div>'+
-    wpBulgular.map((b,j)=>'<label style="display:flex;gap:8px;align-items:flex-start;padding:4px 0;border-bottom:1px solid #26415a"><input type="checkbox" checked id="wpb'+j+'"><span style="flex:1;font-size:11px"><b>'+(b.tip==='db'?'DB '+String(b.no).padStart(2,'0'):b.tip==='cap'?'ÇAP '+b.no:'(hedef yok)')+'</b> — <span style="color:'+renk[b.is]+'">'+(b.is==='montaj'?'montaj':b.is==='revize'?'revizyon':'kablo çekildi')+'</span>'+(b.is==='kablo'?'<span style="color:#7d93a3"> · '+(sinifAd[b.sinif]||'')+(b.kesit?' '+b.kesit:'')+(b.metraj?' · '+b.metraj+'m':'')+'</span>':'')+'<br><span style="color:#7d93a3;font-size:10px">'+b.satir.slice(0,70)+'</span></span></label>').join('')+
+    wpBulgular.map((b,j)=>{
+      let bas, etiket, ek='';
+      if(b.tip==='linye'){ bas=(b.kod||('ÇAP '+b.no))+' · '+b.linye; etiket='linye '+(b.durum==='revize'?'revize':'çekildi'); ek=b.metraj?(' · '+b.metraj+'m'):''; }
+      else { bas=hedAd(b); etiket=(b.is==='montaj'?'montaj':b.is==='revize'?'revizyon':'kablo çekildi'); if(b.is==='kablo') ek=' · '+(sinifAd[b.sinif]||'')+(b.kesit?' '+b.kesit:'')+(b.metraj?' · '+b.metraj+'m':''); }
+      return '<label style="display:flex;gap:8px;align-items:flex-start;padding:4px 0;border-bottom:1px solid #26415a"><input type="checkbox" checked id="wpb'+j+'"><span style="flex:1;font-size:11px"><b>'+bas+'</b> — <span style="color:'+(renk[b.tip==='linye'?'linye':b.is]||'#2196f3')+'">'+etiket+'</span><span style="color:#7d93a3">'+ek+'</span><br><span style="color:#7d93a3;font-size:10px">'+b.satir.slice(0,70)+'</span></span></label>';
+    }).join('')+
     '<input type="date" id="wpTarih" value="'+(tarih||bugun())+'" style="width:100%;margin-top:8px;background:#0f1923;color:#fff;border:1px solid #33567a;border-radius:6px;padding:6px"><button class="btn" style="width:100%;margin-top:8px;background:#1b5e20;font-weight:700" onclick="wpUygula()">✓ Seçilenleri Paftaya İşle</button>';
+}
+function wpPanoBul(b){
+  if(b.kod){ const t=b.kod.replace(/\s+/g,'').toLocaleUpperCase('tr'); const o=data.panos.find(x=>(x.kod||'').replace(/\s+/g,'').toLocaleUpperCase('tr')===t); if(o) return o; }
+  let o=data.panos.find(x=>{const m=(x.kod||'').match(/O\s*0?(\d+)/i); return m&&parseInt(m[1])===b.no&&/ÇAP|CAP/i.test(x.kod);});
+  if(!o) o=data.panos.find(x=>{const m=(x.kod||'').match(/O\s*0?(\d+)/i); return m&&parseInt(m[1])===b.no;});
+  return o||null;
 }
 function wpUygula(){
   const tarih=document.getElementById('wpTarih').value;
@@ -836,13 +898,32 @@ function wpUygula(){
     if(k){ k.durum='cekildi'; if(b.metraj) k.mt=String(b.metraj); if(b.sinif==='guc'&&b.kesit) k.tip=b.kesit+'mm² N2XH'; }
     else notEkle(o,b);
   };
+  const linyeIsle=(o,b,hedefTip)=>{
+    o.linye=o.linye||{};
+    let bilinen=[];
+    if(hedefTip==='cap' && typeof PANO_LINYE!=='undefined' && PANO_LINYE[o.kod]) bilinen=PANO_LINYE[o.kod].map(x=>x.l);
+    else if(hedefTip==='db' && typeof HATLAR!=='undefined' && HATLAR[String(o.id).padStart(2,'0')]) bilinen=HATLAR[String(o.id).padStart(2,'0')].hatlar;
+    if(!bilinen.includes(b.linye)){ o.ekLinye=o.ekLinye||[]; if(!o.ekLinye.includes(b.linye)) o.ekLinye.push(b.linye); }
+    const eski=o.linye[b.linye]||{};
+    o.linye[b.linye]={...eski, durum:b.durum, mt: b.metraj?String(b.metraj):(eski.mt||'')};
+    if(hedefTip==='db') o.kablo=true;
+  };
   wpBulgular.forEach((b,j)=>{
     const cb=document.getElementById('wpb'+j); if(cb&&!cb.checked) return;
+    // LINYE
+    if(b.tip==='linye'){
+      let o = b.hedefTip==='cap' ? wpPanoBul(b) : data.dbs.find(x=>parseInt(x.id)===b.no);
+      if(!o){ data.raporlar.push({tarih, hedef:((b.kod||(b.hedefTip==='db'?'DB '+b.no:'ÇAP '+b.no))+' '+b.linye+' — eşleşmedi'), montaj:false, kablo:true, revize:b.durum==='revize', metraj:b.metraj||null, adet:null, not:'WP: '+b.satir.slice(0,100), fotolar:[]}); uyg++; return; }
+      linyeIsle(o,b,b.hedefTip);
+      data.raporlar.push({tarih, hedef:(o.kod||('DB '+String(o.id).padStart(2,'0')))+' '+b.linye, montaj:false, kablo:true, revize:b.durum==='revize', metraj:b.metraj||null, adet:null, not:'WP: '+b.satir.slice(0,100), fotolar:[]});
+      uyg++; return;
+    }
+    // HEDEF (db/cap/harici)
     let o=null, key=null;
     if(b.tip==='db'){ o=data.dbs.find(x=>parseInt(x.id)===b.no); key=String(b.no).padStart(2,'0'); }
-    else if(b.tip==='cap'){ o=data.panos.find(x=>{const m=(x.kod||'').match(/O\s*0?(\d+)/i); return m&&parseInt(m[1])===b.no&&/ÇAP|CAP/i.test(x.kod);}); if(!o) o=data.panos.find(x=>{const m=(x.kod||'').match(/O\s*0?(\d+)/i); return m&&parseInt(m[1])===b.no;}); key=o?o.kod:null; }
+    else if(b.tip==='cap'){ o=wpPanoBul(b); key=o?o.kod:null; }
     if(b.tip==='harici' || !o){
-      data.raporlar.push({tarih, hedef:b.tip==='harici'?'(harici/genel kablo)':((b.tip==='db'?'DB '+b.no:'ÇAP '+b.no)+' — eşleşmedi'), montaj:false, kablo:b.is==='kablo', revize:b.is==='revize', metraj:b.metraj||null, adet:null, not:'WP: '+b.satir.slice(0,100), fotolar:[]});
+      data.raporlar.push({tarih, hedef:b.tip==='harici'?'(harici/genel kablo)':((b.tip==='db'?'DB '+b.no:(b.kod||'ÇAP '+b.no))+' — eşleşmedi'), montaj:false, kablo:b.is==='kablo', revize:b.is==='revize', metraj:b.metraj||null, adet:null, not:'WP: '+b.satir.slice(0,100), fotolar:[]});
       uyg++; return;
     }
     if(b.is==='montaj') o.montaj=true;
