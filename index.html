@@ -768,6 +768,7 @@ window.addEventListener('beforeunload' , e=>{
 // ============ WHATSAPP METİN ÇÖZÜMLEYİCİ ============
 let wpBulgular = [];
 // ================= MAHAL (SAHA BÖLGE) MODÜLÜ =================
+let _mahalDonusId = null;
 // Bir nokta "bitti" = montajlı VE kablolaması tamam (linye+besleme hepsi çekili).
 function mahalNoktaBitti(node, tip){
   if(!node || !node.montaj) return false;
@@ -882,7 +883,7 @@ function mahalDetay(id){
     const ad=mahalAd(u,node,tip);
     const kbTxt = (kd===null)?'kablo —':(kd==='tamam'?'kablo tam':(kd==='devam'?'kablo yarım':'kablo yok'));
     const durumTxt=(node.montaj?'montaj ✓':'montaj ✗')+' · '+kbTxt+(node.revize?' · R':'')+((node.fotolar||[]).length?' · 📷'+node.fotolar.length:'');
-    return '<div onclick="mahalUyeGit(\''+u.t+'\',\''+u.k+'\')" style="display:flex;align-items:center;gap:8px;padding:7px 6px;border-bottom:1px solid #22394d;cursor:pointer;border-radius:5px" onmouseover="this.style.background=\'#13283a\'" onmouseout="this.style.background=\'\'">'+
+    return '<div onclick="mahalUyeGit(\''+u.t+'\',\''+u.k+'\',\''+id+'\')" style="display:flex;align-items:center;gap:8px;padding:7px 6px;border-bottom:1px solid #22394d;cursor:pointer;border-radius:5px" onmouseover="this.style.background=\'#13283a\'" onmouseout="this.style.background=\'\'">'+
       '<span style="width:11px;height:11px;border-radius:50%;background:'+dot+';flex:none"></span>'+
       '<div style="flex:1"><div style="font-size:12px;font-weight:700">'+ad+'</div><div style="font-size:10px;color:#90a4ae">'+durumTxt+'</div></div>'+
       '<span style="color:#5f7488;font-size:16px">›</span></div>';
@@ -895,14 +896,26 @@ function mahalDetay(id){
     '<button class="btn" style="width:100%;background:#26415a;margin-top:10px" onclick="mahalUyeDuzenle(\''+id+'\')">✎ Üyeleri düzenle (ekle/çıkar)</button>'+
     '<button class="btn" style="width:100%;margin-top:6px" onclick="mahalRender()">← Mahaller listesine dön</button>';
 }
-function mahalUyeGit(t,k){
+function mahalUyeGit(t,k,mid){
   if(t==='db') k=parseInt(k);
   let tip, i;
   if(t==='db'){ tip='db'; i=data.dbs.findIndex(x=>parseInt(x.id)===k); }
   else { tip='pano'; i=data.panos.findIndex(x=>x.kod===k); }
   if(i<0){ alert('Nokta paftada bulunamadı.'); return; }
+  if(mid) _mahalDonusId = mid;
   const mp=document.getElementById('mahalPanel'); if(mp) mp.style.display='none';
   if(typeof odaklan==='function') odaklan(tip,i); else if(typeof ac==='function') ac(tip,i);
+  if(_mahalDonusId){
+    const panel=document.getElementById('panel');
+    const m=data.mahaller.find(x=>x.id===_mahalDonusId);
+    if(panel && m){
+      const b=document.createElement('button');
+      b.className='btn'; b.style.cssText='width:100%;margin-top:8px;background:#3a2e6b;font-weight:700';
+      b.textContent='← '+m.ad+' üyelerine dön';
+      b.onclick=function(){ const pp=document.getElementById('panel'); if(pp) pp.style.display='none'; mahalAc(); mahalDetay(_mahalDonusId); };
+      panel.appendChild(b);
+    }
+  }
 }
 function mahalEkle(){
   const ad=prompt('Mahal adı (örn. Havuz, Otopark, Villa-1 bahçesi):'); if(!ad||!ad.trim()) return;
