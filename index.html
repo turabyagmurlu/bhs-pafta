@@ -272,7 +272,6 @@ function ciz(){
   data.dbs.forEach((d,i)=>{
     const el = document.createElement('div');
     el.className = `mk db ${d.montaj?'m1':'m0'} ${d.kablo?'kablo':''}`;
-    { const _kd=kbDurum(d,'db'); if(_kd) el.classList.add('kb-'+_kd); }
     el.style.left = (d.x*IW)+'px'; el.style.top = (d.y*IH)+'px';
     el.textContent = d.id;
     if(d.revize){ const r=document.createElement('div'); r.className='rv'; r.textContent='R'; el.appendChild(r); }
@@ -287,7 +286,7 @@ function ciz(){
   data.panos.forEach((p,i)=>{
     const el = document.createElement('div');
     el.className = `mk pano ${p.montaj?'m1':'m0'}`;
-    { const _kp=kbDurum(p,'pano'); if(_kp) el.classList.add('kb-'+_kp); }
+    { if((p.kod||'').toLocaleUpperCase('tr').includes('ÇAP')){ const _kp=kbDurum(p,'pano'); if(_kp) el.classList.add('kb-'+_kp); } }
     el.style.left = (p.x*IW)+'px'; el.style.top = (p.y*IH)+'px';
     el.textContent = p.kod.replace(/-/g,'‑'); el.title = p.kod;
     if((p.fotolar||[]).length){ const f=document.createElement('div'); f.className='fo'; f.textContent='📷'; el.appendChild(f); }
