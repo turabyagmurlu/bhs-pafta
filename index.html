@@ -779,18 +779,37 @@ function mahalNokta(u){
   return {node:data.panos.find(x=>x.kod===u.k), tip:'pano'};
 }
 function mahalAd(u, node, tip){ return tip==='db'?('DB '+String(node.id).padStart(2,'0')):node.kod; }
+// Bir noktanin kablolama kalemlerini (linye + besleme) sayar: {toplam, biten}
+function kbSayac(o, tip){
+  const dur=[];
+  let bk = (o.besleme && Array.isArray(o.besleme.kablolar)) ? o.besleme.kablolar : null;
+  if(!bk){ const key=tip==='db'?String(o.id).padStart(2,'0'):o.kod; const bd=(typeof BESLEME!=='undefined')?BESLEME[key]:null; bk=bd?bd.kablolar.map(()=>({durum:'bekliyor'})):[]; }
+  for(const k of bk) dur.push(k.durum||'bekliyor');
+  let hatlar=[];
+  if(tip==='db'){ const hb=(typeof HATLAR!=='undefined')?HATLAR[String(o.id).padStart(2,'0')]:null; if(hb) hatlar=hb.hatlar.slice(); }
+  else { if(typeof PANO_LINYE!=='undefined' && PANO_LINYE[o.kod]) hatlar=PANO_LINYE[o.kod].map(x=>x.l); }
+  const gizli=o.gizliLinye||[]; hatlar=hatlar.filter(h=>!gizli.includes(h));
+  for(const h of (o.ekLinye||[])) if(!hatlar.includes(h)) hatlar.push(h);
+  for(const h of hatlar){ const l=(o.linye&&o.linye[h])||{}; dur.push(l.durum||'bekliyor'); }
+  const toplam=dur.length; const biten=dur.filter(d=>d&&d!=='bekliyor').length;
+  return {toplam, biten};
+}
+// yuzde = GRANÜL ilerleme (montaj + her kablo kalemi ayri birim). bitti = hepsi tam (kati).
 function mahalDurum(m){
-  const eksik=[]; let biten=0, toplam=0;
+  const eksik=[]; let bitenNokta=0, toplamNokta=0, birimT=0, birimB=0;
   (m.uyeler||[]).forEach(u=>{
     const r=mahalNokta(u); if(!r.node) return;
-    toplam++;
-    if(mahalNoktaBitti(r.node, r.tip)){ biten++; return; }
+    toplamNokta++;
+    const sc=kbSayac(r.node, r.tip);
+    birimT += 1 + sc.toplam;
+    birimB += (r.node.montaj?1:0) + sc.biten;
+    if(mahalNoktaBitti(r.node, r.tip)){ bitenNokta++; return; }
     const kd=(typeof kbDurum==='function')?kbDurum(r.node,r.tip):null;
     const neden = !r.node.montaj?'montaj yok':(kd==='devam'?'kablo yarım':'kablo yok');
     eksik.push({ad:mahalAd(u,r.node,r.tip), neden});
   });
-  const yuzde = toplam?Math.round(biten/toplam*100):0;
-  return {toplam, biten, yuzde, bitti: toplam>0 && biten===toplam, eksik};
+  const yuzde = birimT?Math.round(birimB/birimT*100):0;
+  return {toplam:toplamNokta, biten:bitenNokta, yuzde, bitti: toplamNokta>0 && bitenNokta===toplamNokta, eksik};
 }
 function mahalAc(){
   try{ kapat(); }catch(e){}
@@ -812,7 +831,7 @@ function mahalRender(){
       '<div style="display:flex;align-items:center;gap:6px"><span style="width:11px;height:11px;border-radius:50%;background:'+renk+';flex:none"></span>'+
       '<b style="flex:1;font-size:13px">'+m.ad+'</b><span style="font-size:11px;font-weight:700;color:'+renk+'">'+rozet+'</span></div>'+
       '<div style="background:#0f1923;border-radius:5px;height:7px;margin-top:6px;overflow:hidden"><div style="height:100%;width:'+d.yuzde+'%;background:'+renk+'"></div></div>'+
-      '<div style="font-size:10px;color:#7d93a3;margin-top:3px">'+d.biten+'/'+d.toplam+' nokta tamam</div>'+eksikHtml+
+      '<div style="font-size:10px;color:#7d93a3;margin-top:3px">%'+d.yuzde+' ilerleme · '+d.biten+'/'+d.toplam+' nokta tam bitti</div>'+eksikHtml+
       '<div style="display:flex;gap:5px;margin-top:7px">'+
         '<button class="btn" style="flex:1;font-size:11px;padding:4px" onclick="mahalUyeDuzenle(\''+m.id+'\')">Üyeler ('+(m.uyeler||[]).length+')</button>'+
         '<button class="btn" style="font-size:11px;padding:4px" onclick="mahalAdDegis(\''+m.id+'\')">✎</button>'+
