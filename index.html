@@ -826,14 +826,15 @@ function mahalRender(){
     const d=mahalDurum(m); if(d.bitti) bitenM++;
     const renk = d.bitti?'#00e676':(d.yuzde>0?'#ffb300':'#ff5252');
     const rozet = d.bitti?'✓ BİTTİ':(d.toplam?('%'+d.yuzde):'üye yok');
-    const eksikHtml = d.eksik.length?('<div style="font-size:10px;color:#90a4ae;margin-top:4px">Eksik: '+d.eksik.map(e=>e.ad+' <span style="color:#7d93a3">('+e.neden+')</span>').join(', ')+'</div>'):'';
     return '<div style="border:1px solid #2a4258;border-radius:8px;padding:8px;margin-bottom:7px;background:#10212e">'+
-      '<div style="display:flex;align-items:center;gap:6px"><span style="width:11px;height:11px;border-radius:50%;background:'+renk+';flex:none"></span>'+
-      '<b style="flex:1;font-size:13px">'+m.ad+'</b><span style="font-size:11px;font-weight:700;color:'+renk+'">'+rozet+'</span></div>'+
-      '<div style="background:#0f1923;border-radius:5px;height:7px;margin-top:6px;overflow:hidden"><div style="height:100%;width:'+d.yuzde+'%;background:'+renk+'"></div></div>'+
-      '<div style="font-size:10px;color:#7d93a3;margin-top:3px">%'+d.yuzde+' ilerleme · '+d.biten+'/'+d.toplam+' nokta tam bitti</div>'+eksikHtml+
+      '<div onclick="mahalDetay(\''+m.id+'\')" style="cursor:pointer">'+
+        '<div style="display:flex;align-items:center;gap:6px"><span style="width:11px;height:11px;border-radius:50%;background:'+renk+';flex:none"></span>'+
+        '<b style="flex:1;font-size:13px">'+m.ad+'</b><span style="font-size:11px;font-weight:700;color:'+renk+'">'+rozet+'</span><span style="color:#5f7488;font-size:15px">›</span></div>'+
+        '<div style="background:#0f1923;border-radius:5px;height:7px;margin-top:6px;overflow:hidden"><div style="height:100%;width:'+d.yuzde+'%;background:'+renk+'"></div></div>'+
+        '<div style="font-size:10px;color:#7d93a3;margin-top:3px">%'+d.yuzde+' ilerleme · '+d.biten+'/'+d.toplam+' nokta tam bitti · '+(m.uyeler||[]).length+' üye — dokun</div>'+
+      '</div>'+
       '<div style="display:flex;gap:5px;margin-top:7px">'+
-        '<button class="btn" style="flex:1;font-size:11px;padding:4px" onclick="mahalUyeDuzenle(\''+m.id+'\')">Üyeler ('+(m.uyeler||[]).length+')</button>'+
+        '<button class="btn" style="flex:1;font-size:11px;padding:4px;background:#26415a" onclick="mahalDetay(\''+m.id+'\')">📊 Üyeler & Analiz</button>'+
         '<button class="btn" style="font-size:11px;padding:4px" onclick="mahalAdDegis(\''+m.id+'\')">✎</button>'+
         '<button class="btn warn" style="font-size:11px;padding:4px" onclick="mahalSil(\''+m.id+'\')">🗑</button></div></div>';
   }).join('');
@@ -865,6 +866,43 @@ function mahalUyeToggle(id,t,k){
   const i=m.uyeler.findIndex(u=>u.t===t && u.k===k);
   if(i>=0) m.uyeler.splice(i,1); else m.uyeler.push({t,k});
   kaydet();
+}
+function mahalDetay(id){
+  const m=data.mahaller.find(x=>x.id===id); if(!m) return;
+  const d=mahalDurum(m);
+  const renk = d.bitti?'#00e676':(d.yuzde>0?'#ffb300':'#ff5252');
+  const p=document.getElementById('mahalPanel');
+  const satirlar = (m.uyeler||[]).map(u=>{
+    const r=mahalNokta(u);
+    if(!r.node) return '<div style="font-size:11px;color:#7d93a3;padding:6px;border-bottom:1px solid #22394d">'+(u.t==='db'?'DB '+u.k:u.k)+' — paftada bulunamadı</div>';
+    const node=r.node, tip=r.tip;
+    const kd=(typeof kbDurum==='function')?kbDurum(node,tip):null;
+    const tam=mahalNoktaBitti(node,tip);
+    const dot=tam?'#00e676':(!node.montaj?'#ff1744':(kd==='devam'?'#ffb300':'#ff5252'));
+    const ad=mahalAd(u,node,tip);
+    const kbTxt = (kd===null)?'kablo —':(kd==='tamam'?'kablo tam':(kd==='devam'?'kablo yarım':'kablo yok'));
+    const durumTxt=(node.montaj?'montaj ✓':'montaj ✗')+' · '+kbTxt+(node.revize?' · R':'')+((node.fotolar||[]).length?' · 📷'+node.fotolar.length:'');
+    return '<div onclick="mahalUyeGit(\''+u.t+'\',\''+u.k+'\')" style="display:flex;align-items:center;gap:8px;padding:7px 6px;border-bottom:1px solid #22394d;cursor:pointer;border-radius:5px" onmouseover="this.style.background=\'#13283a\'" onmouseout="this.style.background=\'\'">'+
+      '<span style="width:11px;height:11px;border-radius:50%;background:'+dot+';flex:none"></span>'+
+      '<div style="flex:1"><div style="font-size:12px;font-weight:700">'+ad+'</div><div style="font-size:10px;color:#90a4ae">'+durumTxt+'</div></div>'+
+      '<span style="color:#5f7488;font-size:16px">›</span></div>';
+  }).join('');
+  p.innerHTML = '<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px"><b style="flex:1;font-size:14px">'+m.ad+'</b><span style="font-weight:700;color:'+renk+'">'+(d.bitti?'✓ BİTTİ':'%'+d.yuzde)+'</span></div>'+
+    '<div style="background:#0f1923;border-radius:5px;height:8px;overflow:hidden"><div style="height:100%;width:'+d.yuzde+'%;background:'+renk+'"></div></div>'+
+    '<div style="font-size:10px;color:#7d93a3;margin:4px 0 8px">%'+d.yuzde+' ilerleme · '+d.biten+'/'+d.toplam+' nokta tam bitti</div>'+
+    '<div style="font-size:11px;color:#90a4ae;margin-bottom:4px">Üyeler ('+(m.uyeler||[]).length+') — birine dokun, paftada o noktaya gider:</div>'+
+    satirlar+
+    '<button class="btn" style="width:100%;background:#26415a;margin-top:10px" onclick="mahalUyeDuzenle(\''+id+'\')">✎ Üyeleri düzenle (ekle/çıkar)</button>'+
+    '<button class="btn" style="width:100%;margin-top:6px" onclick="mahalRender()">← Mahaller listesine dön</button>';
+}
+function mahalUyeGit(t,k){
+  if(t==='db') k=parseInt(k);
+  let tip, i;
+  if(t==='db'){ tip='db'; i=data.dbs.findIndex(x=>parseInt(x.id)===k); }
+  else { tip='pano'; i=data.panos.findIndex(x=>x.kod===k); }
+  if(i<0){ alert('Nokta paftada bulunamadı.'); return; }
+  const mp=document.getElementById('mahalPanel'); if(mp) mp.style.display='none';
+  if(typeof odaklan==='function') odaklan(tip,i); else if(typeof ac==='function') ac(tip,i);
 }
 function mahalEkle(){
   const ad=prompt('Mahal adı (örn. Havuz, Otopark, Villa-1 bahçesi):'); if(!ad||!ad.trim()) return;
