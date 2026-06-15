@@ -62,7 +62,7 @@ header .sub{font-size:11px;color:var(--mut)}
   #lejant{display:none}
   #lejant.acik{display:block;font-size:11px;line-height:1.9}
   #lejantBtn{display:block !important}
-  #panel,#raporPanel,#raporListePanel,#wpPanel{left:8px !important;right:8px !important;top:auto !important;bottom:8px !important;width:auto !important;max-height:65vh !important}
+  #panel,#raporPanel,#raporListePanel,#wpPanel,#mahalPanel{left:8px !important;right:8px !important;top:auto !important;bottom:8px !important;width:auto !important;max-height:65vh !important}
 }
 #lejantBtn{display:none;position:absolute;left:14px;bottom:14px;z-index:45}
 
@@ -97,6 +97,7 @@ header .sub{font-size:11px;color:var(--mut)}
   <button class="btn" onclick="ekle('pano')">+ ÇAP/Pano ekle</button>
   <button class="btn" style="background:#2e6b3a" onclick="raporAc()">📝 Rapor Ekle</button>
   <button class="btn" style="background:#1f5e4a" onclick="wpAc()">💬 WP Raporu Yapıştır</button>
+  <button class="btn" style="background:#3a2e6b" onclick="mahalAc()">🏘 Mahaller</button>
   <button class="btn" onclick="raporListeAc()">📋 Raporlar (<span id="rsay">0</span>)</button>
   <button class="btn" id="yedekBtn" onclick="disaAktar()">JSON dışa aktar</button>
   <button class="btn" onclick="jsonPaylas()">📤 Paylaş (WhatsApp…)</button>
@@ -140,6 +141,7 @@ header .sub{font-size:11px;color:var(--mut)}
   <div id="panel"></div>
   <div id="raporPanel" style="display:none;position:absolute;right:14px;top:14px;width:290px;max-height:calc(100% - 28px);overflow-y:auto;background:rgba(21,34,46,.97);border-radius:10px;padding:14px;font-size:13px;z-index:70"></div>
   <div id="wpPanel" style="display:none;position:absolute;right:14px;top:14px;width:330px;max-height:calc(100% - 28px);overflow-y:auto;background:rgba(21,34,46,.97);border-radius:10px;padding:14px;font-size:13px;z-index:75"></div>
+  <div id="mahalPanel" style="display:none;position:absolute;right:14px;top:14px;width:340px;max-height:calc(100% - 28px);overflow-y:auto;background:rgba(21,34,46,.97);border-radius:10px;padding:14px;font-size:13px;z-index:76"></div>
   <div id="raporListePanel" style="display:none;position:absolute;right:14px;top:14px;width:300px;max-height:calc(100% - 28px);overflow-y:auto;background:rgba(21,34,46,.97);border-radius:10px;padding:14px;font-size:13px;z-index:70"></div>
 </div>
 <div id="buyuk" onclick="this.style.display='none'"><span class="kapa">✕</span><img id="buyukimg"></div>
@@ -174,9 +176,9 @@ function uygula(){
 let idbZaman = null;
 let gecmis = [], sonGoruntu = null, geriAliniyor = false, gecmisBekleyen = false;
 function _gKlon(o){ const k=JSON.parse(JSON.stringify(Object.assign({},o,{fotolar:0}))); k.fotolar=(o.fotolar||[]).slice(); return k; }
-function anlikGoruntu(){ return { dbs:(data.dbs||[]).map(_gKlon), panos:(data.panos||[]).map(_gKlon), raporlar:(data.raporlar||[]).map(_gKlon) }; }
+function anlikGoruntu(){ return { dbs:(data.dbs||[]).map(_gKlon), panos:(data.panos||[]).map(_gKlon), raporlar:(data.raporlar||[]).map(_gKlon), mahaller: JSON.parse(JSON.stringify(data.mahaller||[])) }; }
 function guncelleGeriBtn(){ const b=document.getElementById('geriBtn'); if(b){ b.disabled=!gecmis.length; b.style.opacity=gecmis.length?'1':'.45'; } }
-function geriAl(){ if(!gecmis.length){ toast('Geri alinacak islem yok','#7a5c1e'); return; } geriAliniyor=true; const g=gecmis.pop(); data={dbs:g.dbs||[],panos:g.panos||[],raporlar:g.raporlar||[]}; sonGoruntu=anlikGoruntu(); gecmisBekleyen=false; try{rsayGuncelle();}catch(e){} try{kapat();}catch(e){} ciz(); guncelleGeriBtn(); toast('Geri alindi'); setTimeout(()=>{ geriAliniyor=false; }, 400); }
+function geriAl(){ if(!gecmis.length){ toast('Geri alinacak islem yok','#7a5c1e'); return; } geriAliniyor=true; const g=gecmis.pop(); data={dbs:g.dbs||[],panos:g.panos||[],raporlar:g.raporlar||[],mahaller:g.mahaller||[]}; sonGoruntu=anlikGoruntu(); gecmisBekleyen=false; try{rsayGuncelle();}catch(e){} try{kapat();}catch(e){} ciz(); guncelleGeriBtn(); toast('Geri alindi'); setTimeout(()=>{ geriAliniyor=false; }, 400); }
 function kaydet(){
   if(!ilkCizim){ kirli = true; yedekUyariGoster(); }
   if(!geriAliniyor && !ilkCizim && !gecmisBekleyen){
@@ -720,7 +722,7 @@ function iceAktarSec(){ document.getElementById('dosya').click(); }
 document.getElementById('dosya').onchange = e=>{
   const r=new FileReader();
   r.onload=()=>{ try{
-    data=JSON.parse(r.result); data.raporlar = data.raporlar||[]; rsayGuncelle(); kapat();
+    data=JSON.parse(r.result); data.raporlar = data.raporlar||[]; data.mahaller = data.mahaller||[]; rsayGuncelle(); kapat();
     toast(`✓ Yedek içe aktarıldı ve kaydedildi — ${data.raporlar.length} rapor, ${data.dbs.length} DB`);
   }catch(err){ alert('Geçersiz JSON'); } };
   r.readAsText(e.target.files[0]);
@@ -735,7 +737,7 @@ ilkCizim = false;
 (async()=>{
   try{
     const kayit = await idbGet('data');
-    if(kayit && kayit.dbs){ data = kayit; data.raporlar = data.raporlar||[]; rsayGuncelle(); ciz(); }
+    if(kayit && kayit.dbs){ data = kayit; data.raporlar = data.raporlar||[]; data.mahaller = data.mahaller||[]; rsayGuncelle(); ciz(); }
     else { await idbSet('data', data); }
     try{ sonGoruntu = anlikGoruntu(); guncelleGeriBtn(); }catch(e){}
   }catch(e){}
@@ -765,6 +767,115 @@ window.addEventListener('beforeunload' , e=>{
 
 // ============ WHATSAPP METİN ÇÖZÜMLEYİCİ ============
 let wpBulgular = [];
+// ================= MAHAL (SAHA BÖLGE) MODÜLÜ =================
+// Bir nokta "bitti" = montajlı VE kablolaması tamam (linye+besleme hepsi çekili).
+function mahalNoktaBitti(node, tip){
+  if(!node || !node.montaj) return false;
+  const kd = (typeof kbDurum==='function') ? kbDurum(node, tip) : null;
+  return kd===null || kd==='tamam';
+}
+function mahalNokta(u){
+  if(u.t==='db') return {node:data.dbs.find(x=>parseInt(x.id)===u.k), tip:'db'};
+  return {node:data.panos.find(x=>x.kod===u.k), tip:'pano'};
+}
+function mahalAd(u, node, tip){ return tip==='db'?('DB '+String(node.id).padStart(2,'0')):node.kod; }
+function mahalDurum(m){
+  const eksik=[]; let biten=0, toplam=0;
+  (m.uyeler||[]).forEach(u=>{
+    const r=mahalNokta(u); if(!r.node) return;
+    toplam++;
+    if(mahalNoktaBitti(r.node, r.tip)){ biten++; return; }
+    const kd=(typeof kbDurum==='function')?kbDurum(r.node,r.tip):null;
+    const neden = !r.node.montaj?'montaj yok':(kd==='devam'?'kablo yarım':'kablo yok');
+    eksik.push({ad:mahalAd(u,r.node,r.tip), neden});
+  });
+  const yuzde = toplam?Math.round(biten/toplam*100):0;
+  return {toplam, biten, yuzde, bitti: toplam>0 && biten===toplam, eksik};
+}
+function mahalAc(){
+  try{ kapat(); }catch(e){}
+  ['raporPanel','raporListePanel','wpPanel'].forEach(id=>{const e=document.getElementById(id); if(e) e.style.display='none';});
+  data.mahaller = data.mahaller || [];
+  const p=document.getElementById('mahalPanel'); p.style.display='block';
+  mahalRender();
+}
+function mahalRender(){
+  data.mahaller = data.mahaller || [];
+  const p=document.getElementById('mahalPanel');
+  let bitenM=0;
+  const govde = data.mahaller.map(m=>{
+    const d=mahalDurum(m); if(d.bitti) bitenM++;
+    const renk = d.bitti?'#00e676':(d.yuzde>0?'#ffb300':'#ff5252');
+    const rozet = d.bitti?'✓ BİTTİ':(d.toplam?('%'+d.yuzde):'üye yok');
+    const eksikHtml = d.eksik.length?('<div style="font-size:10px;color:#90a4ae;margin-top:4px">Eksik: '+d.eksik.map(e=>e.ad+' <span style="color:#7d93a3">('+e.neden+')</span>').join(', ')+'</div>'):'';
+    return '<div style="border:1px solid #2a4258;border-radius:8px;padding:8px;margin-bottom:7px;background:#10212e">'+
+      '<div style="display:flex;align-items:center;gap:6px"><span style="width:11px;height:11px;border-radius:50%;background:'+renk+';flex:none"></span>'+
+      '<b style="flex:1;font-size:13px">'+m.ad+'</b><span style="font-size:11px;font-weight:700;color:'+renk+'">'+rozet+'</span></div>'+
+      '<div style="background:#0f1923;border-radius:5px;height:7px;margin-top:6px;overflow:hidden"><div style="height:100%;width:'+d.yuzde+'%;background:'+renk+'"></div></div>'+
+      '<div style="font-size:10px;color:#7d93a3;margin-top:3px">'+d.biten+'/'+d.toplam+' nokta tamam</div>'+eksikHtml+
+      '<div style="display:flex;gap:5px;margin-top:7px">'+
+        '<button class="btn" style="flex:1;font-size:11px;padding:4px" onclick="mahalUyeDuzenle(\''+m.id+'\')">Üyeler ('+(m.uyeler||[]).length+')</button>'+
+        '<button class="btn" style="font-size:11px;padding:4px" onclick="mahalAdDegis(\''+m.id+'\')">✎</button>'+
+        '<button class="btn warn" style="font-size:11px;padding:4px" onclick="mahalSil(\''+m.id+'\')">🗑</button></div></div>';
+  }).join('');
+  p.innerHTML = '<h3 style="font-size:14px;margin-bottom:4px">🏘 Mahaller — Saha Durumu</h3>'+
+    '<div style="font-size:12px;color:#90a4ae;margin-bottom:8px"><b style="color:#00e676">'+bitenM+'</b>/'+data.mahaller.length+' mahal bitti</div>'+
+    (govde||'<div style="color:#7d93a3;font-size:12px;margin-bottom:8px">Henüz mahal yok. Aşağıdan ekleyip pano/DB ata.</div>')+
+    '<button class="btn" style="width:100%;background:#2e6b3a;margin-top:4px" onclick="mahalEkle()">+ Mahal ekle</button>'+
+    '<button class="btn" style="width:100%;margin-top:6px;background:#26415a" onclick="mahalRapor()">📋 Saha durum raporu (kopyala)</button>'+
+    '<button class="btn" style="width:100%;margin-top:6px" onclick="document.getElementById(\'mahalPanel\').style.display=\'none\'">Kapat</button>';
+}
+function mahalUyeDuzenle(id){
+  const m=data.mahaller.find(x=>x.id===id); if(!m) return; m.uyeler=m.uyeler||[];
+  const p=document.getElementById('mahalPanel');
+  const uyeMi=(t,k)=>m.uyeler.some(u=>u.t===t && u.k===k);
+  const sat=(t,k,ad,bitti)=>'<label style="display:flex;align-items:center;gap:6px;padding:3px 0;font-size:12px">'+
+    '<input type="checkbox" '+(uyeMi(t,k)?'checked':'')+' onchange="mahalUyeToggle(\''+id+'\',\''+t+'\',\''+k+'\')">'+
+    '<span style="width:9px;height:9px;border-radius:50%;background:'+(bitti?'#00e676':'#5a6b78')+';flex:none"></span> '+ad+'</label>';
+  const panoSat = data.panos.map(o=>sat('pano',o.kod,o.kod, mahalNoktaBitti(o,'pano'))).join('');
+  const dbSat = data.dbs.map(o=>sat('db',parseInt(o.id),'DB '+String(o.id).padStart(2,'0'), mahalNoktaBitti(o,'db'))).join('');
+  p.innerHTML = '<h3 style="font-size:14px;margin-bottom:6px">'+m.ad+' — üye seç</h3>'+
+    '<div style="font-size:11px;color:#90a4ae;margin-bottom:6px">Bu mahale ait pano ve DB\'leri işaretle. Yeşil nokta = o nokta bitmiş.</div>'+
+    '<div style="font-weight:700;font-size:12px;margin:4px 0">Panolar</div>'+panoSat+
+    '<div style="font-weight:700;font-size:12px;margin:8px 0 4px">Driver Box (DB)</div>'+dbSat+
+    '<button class="btn" style="width:100%;background:#2e6b3a;margin-top:10px" onclick="mahalRender()">← Geri (duruma dön)</button>';
+}
+function mahalUyeToggle(id,t,k){
+  const m=data.mahaller.find(x=>x.id===id); if(!m) return; m.uyeler=m.uyeler||[];
+  if(t==='db') k=parseInt(k);
+  const i=m.uyeler.findIndex(u=>u.t===t && u.k===k);
+  if(i>=0) m.uyeler.splice(i,1); else m.uyeler.push({t,k});
+  kaydet();
+}
+function mahalEkle(){
+  const ad=prompt('Mahal adı (örn. Havuz, Otopark, Villa-1 bahçesi):'); if(!ad||!ad.trim()) return;
+  data.mahaller=data.mahaller||[];
+  data.mahaller.push({id:'m'+Date.now().toString(36)+Math.floor(Math.random()*1000), ad:ad.trim(), uyeler:[]});
+  kaydet(); mahalRender();
+}
+function mahalSil(id){
+  if(!confirm('Bu mahal silinsin mi? (Pano/DB verileri silinmez, sadece grup tanımı kalkar)')) return;
+  data.mahaller=(data.mahaller||[]).filter(x=>x.id!==id); kaydet(); mahalRender();
+}
+function mahalAdDegis(id){
+  const m=data.mahaller.find(x=>x.id===id); if(!m) return;
+  const y=prompt('Mahal adı:', m.ad); if(y===null) return; m.ad=(y.trim()||m.ad); kaydet(); mahalRender();
+}
+function mahalRapor(){
+  data.mahaller=data.mahaller||[];
+  if(!data.mahaller.length){ alert('Önce mahal ekle.'); return; }
+  const t=new Date().toLocaleDateString('tr-TR');
+  const bitti=[], devam=[];
+  data.mahaller.forEach(m=>{ const d=mahalDurum(m); (d.bitti?bitti:devam).push({m,d}); });
+  let s='🏘 BHS SAHA MAHAL DURUMU ('+t+')\n';
+  s+='Biten: '+bitti.length+'/'+data.mahaller.length+' mahal\n\n';
+  s+='✅ BİTEN MAHALLER ('+bitti.length+'):\n';
+  s+= (bitti.length? bitti.map(x=>'• '+x.m.ad+' ('+x.d.biten+'/'+x.d.toplam+' nokta)').join('\n') : '— yok');
+  s+='\n\n🔧 DEVAM EDENLER ('+devam.length+'):\n';
+  s+= (devam.length? devam.map(x=>'• '+x.m.ad+' — %'+x.d.yuzde+' ('+x.d.biten+'/'+x.d.toplam+')'+(x.d.eksik.length?'\n   eksik: '+x.d.eksik.map(e=>e.ad+' ['+e.neden+']').join(', '):'')).join('\n') : '— yok');
+  if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(s).then(()=>{ try{toast('Saha raporu panoya kopyalandı');}catch(e){} }, ()=>{}); }
+  alert(s);
+}
 function wpAc(){
   kapat(); document.getElementById('raporPanel').style.display='none';
   document.getElementById('raporListePanel').style.display='none';
@@ -939,6 +1050,7 @@ function wpUygula(){
 
 // ================= RAPOR MODÜLÜ =================
 data.raporlar = data.raporlar || [];
+data.mahaller = data.mahaller || [];
 let raporFotolar = [];
 function bugun(){ const d=new Date(); return d.toISOString().slice(0,10); }
 function rsayGuncelle(){ const e=document.getElementById('rsay'); if(e) e.textContent = data.raporlar.length; }
@@ -1133,7 +1245,7 @@ rsayGuncelle();
       k.fotolar = ids;
       return k;
     }
-    const hafif = { dbs:[], panos:[], raporlar:[] };
+    const hafif = { dbs:[], panos:[], raporlar:[], mahaller: JSON.parse(JSON.stringify(data.mahaller||[])) };
     for(const o of (data.dbs||[]))      hafif.dbs.push(await isle(o));
     for(const o of (data.panos||[]))    hafif.panos.push(await isle(o));
     for(const o of (data.raporlar||[])) hafif.raporlar.push(await isle(o));
@@ -1176,12 +1288,12 @@ rsayGuncelle();
       }
       o.fotolar = arr; return o;
     }
-    const yeni = { dbs:[], panos:[], raporlar:[] };
+    const yeni = { dbs:[], panos:[], raporlar:[], mahaller: (hafif.mahaller||[]) };
     for(const o of (hafif.dbs||[]))      yeni.dbs.push(await geri(Object.assign({}, o)));
     for(const o of (hafif.panos||[]))    yeni.panos.push(await geri(Object.assign({}, o)));
     for(const o of (hafif.raporlar||[])) yeni.raporlar.push(await geri(Object.assign({}, o)));
     uygulaniyorRemote = true;
-    data = yeni; data.raporlar = data.raporlar || [];
+    data = yeni; data.raporlar = data.raporlar || []; data.mahaller = data.mahaller || [];
     try{ if(typeof anlikGoruntu==='function'){ sonGoruntu = anlikGoruntu(); gecmis.length=0; gecmisBekleyen=false; if(typeof guncelleGeriBtn==='function') guncelleGeriBtn(); } }catch(e){}
     try{ rsayGuncelle(); }catch(e){}
     try{ ciz(); }catch(e){}
@@ -1195,6 +1307,7 @@ rsayGuncelle();
       n += a.length;
       for(const o of a) n += ((o.fotolar||[]).length) * 3;
     }
+    if(d && d.mahaller) n += d.mahaller.length;
     return n;
   }
 
