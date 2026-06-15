@@ -850,7 +850,7 @@ function wpCozumle(){
     if(montajRe.test(s)) blk.montaj=true;
     if(cekRe.test(s)) blk.cek=true;
     let linyeBulundu=false;
-    for(const m of ln.matchAll(/\bL\s*0?(\d{1,3})\b\s*[:=-]?\s*(\d{1,4})?\s*(?:metre|mt|m)?/gi)){
+    for(const m of ln.matchAll(/\bL\s*0?(\d{1,3})\b[\s:=>/.→–—\-]*(\d{1,4})?\s*(?:metre|mt|m)?/gi)){
       const no=parseInt(m[1]); if(no<1||no>999) continue;
       const metraj=m[2]?parseInt(m[2]):null;
       blk.linye.push({linye:padL(no), metraj, satir:ln.trim()}); linyeBulundu=true;
