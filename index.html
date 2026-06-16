@@ -34,6 +34,13 @@ header .sub{font-size:11px;color:var(--mut)}
 .mk.kb-tamam{box-shadow:0 0 0 2px #fff,0 0 0 5px #00e676}
 .mk.kb-devam{box-shadow:0 0 0 2px #fff,0 0 0 5px #ffb300}
 .mk.kb-yok{box-shadow:0 0 0 2px #fff,0 0 0 5px #ff1744}
+.exsec{background:#10212e;border:1px solid #2a4258;border-left:4px solid #888;border-radius:8px;padding:8px 10px;margin-bottom:8px}
+.exh{font-size:12px;font-weight:700;margin-bottom:5px;color:#cfe3ea}
+.exrow{display:flex;align-items:center;gap:7px;padding:4px 5px;font-size:12px;cursor:pointer;border-radius:5px}
+.exrow:hover{background:#16324a}
+.exdot{width:10px;height:10px;border-radius:50%;flex:none}
+.exgo{margin-left:auto;color:#5f7488}
+.exmuted{color:#5b7184;font-size:11px;padding:2px 5px}
 #lejant{position:absolute;left:14px;bottom:14px;background:rgba(21,34,46,.94);border-radius:10px;padding:12px 16px;font-size:12px;z-index:40;line-height:2}
 #lejant span.s{display:inline-block;width:14px;height:14px;border-radius:50%;vertical-align:-2px;margin-right:8px}
 #panel{position:absolute;right:14px;top:14px;width:270px;max-height:calc(100% - 28px);overflow-y:auto;background:rgba(21,34,46,.97);border-radius:10px;padding:14px;font-size:13px;display:none;z-index:60}
@@ -62,7 +69,7 @@ header .sub{font-size:11px;color:var(--mut)}
   #lejant{display:none}
   #lejant.acik{display:block;font-size:11px;line-height:1.9}
   #lejantBtn{display:block !important}
-  #panel,#raporPanel,#raporListePanel,#wpPanel,#mahalPanel{left:8px !important;right:8px !important;top:auto !important;bottom:8px !important;width:auto !important;max-height:65vh !important}
+  #panel,#raporPanel,#raporListePanel,#wpPanel,#mahalPanel,#eksikPanel,#tyPanel{left:8px !important;right:8px !important;top:auto !important;bottom:8px !important;width:auto !important;max-height:65vh !important}
 }
 #lejantBtn{display:none;position:absolute;left:14px;bottom:14px;z-index:45}
 
@@ -98,6 +105,8 @@ header .sub{font-size:11px;color:var(--mut)}
   <button class="btn" style="background:#2e6b3a" onclick="raporAc()">📝 Rapor Ekle</button>
   <button class="btn" style="background:#1f5e4a" onclick="wpAc()">💬 WP Raporu Yapıştır</button>
   <button class="btn" style="background:#3a2e6b" onclick="mahalAc()">🏘 Mahaller</button>
+  <button class="btn" style="background:#5a3a26" onclick="eksikAc()">📋 Eksik Listesi</button>
+  <button class="btn" style="background:#1f5e4a" onclick="tyRaporAc()">📄 TY Rapor</button>
   <button class="btn" onclick="raporListeAc()">📋 Raporlar (<span id="rsay">0</span>)</button>
   <button class="btn" id="yedekBtn" onclick="disaAktar()">JSON dışa aktar</button>
   <button class="btn" onclick="jsonPaylas()">📤 Paylaş (WhatsApp…)</button>
@@ -142,6 +151,8 @@ header .sub{font-size:11px;color:var(--mut)}
   <div id="raporPanel" style="display:none;position:absolute;right:14px;top:14px;width:290px;max-height:calc(100% - 28px);overflow-y:auto;background:rgba(21,34,46,.97);border-radius:10px;padding:14px;font-size:13px;z-index:70"></div>
   <div id="wpPanel" style="display:none;position:absolute;right:14px;top:14px;width:330px;max-height:calc(100% - 28px);overflow-y:auto;background:rgba(21,34,46,.97);border-radius:10px;padding:14px;font-size:13px;z-index:75"></div>
   <div id="mahalPanel" style="display:none;position:absolute;right:14px;top:14px;width:340px;max-height:calc(100% - 28px);overflow-y:auto;background:rgba(21,34,46,.97);border-radius:10px;padding:14px;font-size:13px;z-index:76"></div>
+  <div id="eksikPanel" style="display:none;position:absolute;right:14px;top:14px;width:330px;max-height:calc(100% - 28px);overflow-y:auto;background:rgba(21,34,46,.97);border-radius:10px;padding:14px;font-size:13px;z-index:77"></div>
+  <div id="tyPanel" style="display:none;position:absolute;right:14px;top:14px;width:340px;max-height:calc(100% - 28px);overflow-y:auto;background:rgba(21,34,46,.97);border-radius:10px;padding:14px;font-size:13px;z-index:77"></div>
   <div id="raporListePanel" style="display:none;position:absolute;right:14px;top:14px;width:300px;max-height:calc(100% - 28px);overflow-y:auto;background:rgba(21,34,46,.97);border-radius:10px;padding:14px;font-size:13px;z-index:70"></div>
 </div>
 <div id="buyuk" onclick="this.style.display='none'"><span class="kapa">✕</span><img id="buyukimg"></div>
@@ -946,6 +957,60 @@ function mahalRapor(){
   if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(s).then(()=>{ try{toast('Saha raporu panoya kopyalandı');}catch(e){} }, ()=>{}); }
   alert(s);
 }
+// ============ EKSİK LİSTESİ + GÜNLÜK TY RAPOR ============
+function _eksikGit(tip,kod){
+  var i = tip==='db' ? data.dbs.findIndex(function(x){return parseInt(x.id)===parseInt(kod);}) : data.panos.findIndex(function(x){return x.kod===kod;});
+  if(i<0) return;
+  document.getElementById('eksikPanel').style.display='none';
+  if(typeof odaklan==='function') odaklan(tip,i); else ac(tip,i);
+}
+function _capPano(p){ return (p.kod||'').toLocaleUpperCase('tr').indexOf('ÇAP')>=0; }
+function eksikAc(){
+  try{ kapat(); }catch(e){}
+  ['raporPanel','raporListePanel','wpPanel','mahalPanel','tyPanel'].forEach(function(id){var e=document.getElementById(id); if(e)e.style.display='none';});
+  var p=document.getElementById('eksikPanel'); p.style.display='block';
+  function kd(o,t){ return (typeof kbDurum==='function')?kbDurum(o,t):(o.kablo?'tamam':'yok'); }
+  var montajsizDB=data.dbs.filter(function(d){return !d.montaj;});
+  var kabloEksikDB=data.dbs.filter(function(d){return d.montaj && kd(d,'db')!=='tamam';});
+  var montajsizPano=data.panos.filter(function(o){return !o.montaj && _capPano(o);});
+  var revize=data.dbs.filter(function(d){return d.revize;}).map(function(d){return {t:'db',o:d};}).concat(data.panos.filter(function(o){return o.revize;}).map(function(o){return {t:'pano',o:o};}));
+  var fotosuz=data.dbs.filter(function(d){return d.montaj && kd(d,'db')==='tamam' && !(d.fotolar||[]).length;});
+  function dbRow(d){ return '<div class="exrow" onclick="_eksikGit(\'db\','+parseInt(d.id)+')"><span class="exdot" style="background:'+(d.montaj?'#19c37d':'#e53935')+'"></span>DB '+String(d.id).padStart(2,'0')+'<span class="exgo">›</span></div>'; }
+  function panoRow(o){ return '<div class="exrow" onclick="_eksikGit(\'pano\',\''+o.kod+'\')"><span class="exdot" style="background:'+(o.montaj?'#19c37d':'#cfd8dc')+'"></span>'+o.kod+'<span class="exgo">›</span></div>'; }
+  function sec(baslik,renk,html,n){ return '<div class="exsec" style="border-left-color:'+renk+'"><div class="exh">'+baslik+' <b style="color:'+renk+'">('+n+')</b></div>'+(html||'<div class="exmuted">— yok</div>')+'</div>'; }
+  var h='';
+  h+=sec('🔴 Montajı eksik DB','#e53935', montajsizDB.map(dbRow).join(''), montajsizDB.length);
+  h+=sec('🟡 Kablosu eksik/yarım DB','#ffb300', kabloEksikDB.map(dbRow).join(''), kabloEksikDB.length);
+  h+=sec('▣ Montajı eksik ÇAP pano','#90a4ae', montajsizPano.map(panoRow).join(''), montajsizPano.length);
+  h+=sec('⟳ Revize işaretli','#ff9800', revize.map(function(x){return x.t==='db'?dbRow(x.o):panoRow(x.o);}).join(''), revize.length);
+  h+=sec('📷 Tamam ama fotoğrafsız','#42a5f5', fotosuz.map(dbRow).join(''), fotosuz.length);
+  p.innerHTML='<h3 style="font-size:14px;margin-bottom:8px">📋 Eksik Listesi</h3>'+h+'<button class="btn" style="width:100%;margin-top:6px" onclick="document.getElementById(\'eksikPanel\').style.display=\'none\'">Kapat</button>';
+}
+function tyRaporAc(){
+  try{ kapat(); }catch(e){}
+  ['raporPanel','raporListePanel','wpPanel','mahalPanel','eksikPanel'].forEach(function(id){var e=document.getElementById(id); if(e)e.style.display='none';});
+  var p=document.getElementById('tyPanel'); p.style.display='block';
+  var tarihler=[]; (data.raporlar||[]).forEach(function(r){ if(r.tarih && tarihler.indexOf(r.tarih)<0) tarihler.push(r.tarih); });
+  tarihler.sort(); var bugun=tarihler.length?tarihler[tarihler.length-1]:(new Date().toISOString().slice(0,10));
+  p.innerHTML='<h3 style="font-size:14px;margin-bottom:8px">📄 Günlük TY Rapor</h3>'+
+    '<div style="font-size:11px;color:#90a4ae;margin-bottom:6px">Tarih seç, o günün rapor kayıtlarından metin üretilir:</div>'+
+    '<input type="date" id="tyTarih" value="'+bugun+'" onchange="tyRaporUret(this.value)" style="width:100%;background:#0f1923;color:#fff;border:1px solid #33567a;border-radius:6px;padding:8px;margin-bottom:8px">'+
+    '<textarea id="tyCikti" rows="12" readonly style="width:100%;background:#0f1923;color:#e7eef4;border:1px solid #33567a;border-radius:6px;padding:9px;font-size:12px;font-family:monospace"></textarea>'+
+    '<button class="btn" style="width:100%;margin-top:8px;background:#1f5e4a" onclick="tyKopyala()">📋 Metni Kopyala</button>'+
+    '<button class="btn" style="width:100%;margin-top:6px" onclick="document.getElementById(\'tyPanel\').style.display=\'none\'">Kapat</button>';
+  tyRaporUret(bugun);
+}
+function tyRaporUret(tarih){
+  var rs=(data.raporlar||[]).filter(function(r){return r.tarih===tarih;});
+  var d=tarih.split('-'); var trh=d.length===3?(d[2]+'.'+d[1]+'.'+d[0]):tarih;
+  var s='Tarih: '+trh+'\nBölge: BHS Hillside Bodrum\n\nYapılan İşler:\n';
+  if(!rs.length){ s+='- (bu tarihte rapor kaydı yok)\n'; }
+  else { rs.forEach(function(r){ var isler=[r.montaj?'montaj':'',r.kablo?'kablo çekimi':'',r.revize?'revizyon':''].filter(Boolean).join(' + ')||'iş'; s+='- '+(r.hedef||'?')+': '+isler+(r.metraj?' ('+r.metraj+' m)':'')+((r.not&&r.not.replace(/^WP:\s*/,'').trim())?' — '+r.not.replace(/^WP:\s*/,'').replace(/\n/g,' ').slice(0,80):'')+'\n'; }); }
+  var fc=0; rs.forEach(function(r){ fc+=(r.fotolar||[]).length; });
+  if(fc) s+='\nNotlar:\n- İlgili '+fc+' fotoğraf pafta kaydına eklendi.\n';
+  var el=document.getElementById('tyCikti'); if(el) el.value=s; window._tyMetin=s;
+}
+function tyKopyala(){ if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(window._tyMetin||'').then(function(){try{toast('TY rapor kopyalandı');}catch(e){}},function(){}); } else { var el=document.getElementById('tyCikti'); if(el){el.select();document.execCommand('copy');} } }
 function wpAc(){
   kapat(); document.getElementById('raporPanel').style.display='none';
   document.getElementById('raporListePanel').style.display='none';
