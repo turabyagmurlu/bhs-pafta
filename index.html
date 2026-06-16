@@ -41,6 +41,12 @@ header .sub{font-size:11px;color:var(--mut)}
 .exdot{width:10px;height:10px;border-radius:50%;flex:none}
 .exgo{margin-left:auto;color:#5f7488}
 .exmuted{color:#5b7184;font-size:11px;padding:2px 5px}
+body[data-rol="izleyici"] #panel{pointer-events:none}
+body[data-rol="izleyici"] #panel button[onclick*="kapat"]{pointer-events:auto}
+body[data-rol="saha"] #panel button[onclick*="sil()"]{display:none}
+body[data-rol="saha"] #panel button[onclick*="kaydir"]{display:none}
+body[data-rol="saha"] #panel button[onclick*="fotoSil"]{display:none}
+body[data-rol="saha"] [onclick*="mahalEkle()"],body[data-rol="izleyici"] [onclick*="mahalEkle()"],body[data-rol="saha"] [onclick*="mahalSil("],body[data-rol="izleyici"] [onclick*="mahalSil("],body[data-rol="saha"] [onclick*="mahalAdDegis("],body[data-rol="izleyici"] [onclick*="mahalAdDegis("],body[data-rol="saha"] [onclick*="mahalUyeDuzenle("],body[data-rol="izleyici"] [onclick*="mahalUyeDuzenle("]{display:none}
 #lejant{position:absolute;left:14px;bottom:14px;background:rgba(21,34,46,.94);border-radius:10px;padding:12px 16px;font-size:12px;z-index:40;line-height:2}
 #lejant span.s{display:inline-block;width:14px;height:14px;border-radius:50%;vertical-align:-2px;margin-right:8px}
 #panel{position:absolute;right:14px;top:14px;width:270px;max-height:calc(100% - 28px);overflow-y:auto;background:rgba(21,34,46,.97);border-radius:10px;padding:14px;font-size:13px;display:none;z-index:60}
@@ -69,7 +75,7 @@ header .sub{font-size:11px;color:var(--mut)}
   #lejant{display:none}
   #lejant.acik{display:block;font-size:11px;line-height:1.9}
   #lejantBtn{display:block !important}
-  #panel,#raporPanel,#raporListePanel,#wpPanel,#mahalPanel,#eksikPanel,#tyPanel{left:8px !important;right:8px !important;top:auto !important;bottom:8px !important;width:auto !important;max-height:65vh !important}
+  #panel,#raporPanel,#raporListePanel,#wpPanel,#mahalPanel,#eksikPanel,#gunlukPanel{left:8px !important;right:8px !important;top:auto !important;bottom:8px !important;width:auto !important;max-height:65vh !important}
 }
 #lejantBtn{display:none;position:absolute;left:14px;bottom:14px;z-index:45}
 
@@ -106,6 +112,9 @@ header .sub{font-size:11px;color:var(--mut)}
   <button class="btn" style="background:#1f5e4a" onclick="wpAc()">💬 WP Raporu Yapıştır</button>
   <button class="btn" style="background:#3a2e6b" onclick="mahalAc()">🏘 Mahaller</button>
   <button class="btn" style="background:#5a3a26" onclick="eksikAc()">📋 Eksik Listesi</button>
+  <button class="btn" style="background:#2e4a6b" onclick="gunlukAc()">📜 İşlem Günlüğü</button>
+  <span id="rolRozet" style="display:inline-block;padding:6px 12px;border-radius:8px;background:#10212e;border:1px solid #2a4258;font-size:12px;font-weight:700;color:#cfe3ea"></span>
+  <button class="btn" style="background:#5a2626" onclick="cikis()">🚪 Çıkış</button>
   <button class="btn" onclick="raporListeAc()">📋 Raporlar (<span id="rsay">0</span>)</button>
   <button class="btn" id="yedekBtn" onclick="disaAktar()">JSON dışa aktar</button>
   <button class="btn" onclick="jsonPaylas()">📤 Paylaş (WhatsApp…)</button>
@@ -151,6 +160,7 @@ header .sub{font-size:11px;color:var(--mut)}
   <div id="wpPanel" style="display:none;position:absolute;right:14px;top:14px;width:330px;max-height:calc(100% - 28px);overflow-y:auto;background:rgba(21,34,46,.97);border-radius:10px;padding:14px;font-size:13px;z-index:75"></div>
   <div id="mahalPanel" style="display:none;position:absolute;right:14px;top:14px;width:340px;max-height:calc(100% - 28px);overflow-y:auto;background:rgba(21,34,46,.97);border-radius:10px;padding:14px;font-size:13px;z-index:76"></div>
   <div id="eksikPanel" style="display:none;position:absolute;right:14px;top:14px;width:330px;max-height:calc(100% - 28px);overflow-y:auto;background:rgba(21,34,46,.97);border-radius:10px;padding:14px;font-size:13px;z-index:77"></div>
+  <div id="gunlukPanel" style="display:none;position:absolute;right:14px;top:14px;width:360px;max-height:calc(100% - 28px);overflow-y:auto;background:rgba(21,34,46,.97);border-radius:10px;padding:14px;font-size:13px;z-index:78"></div>
   <div id="raporListePanel" style="display:none;position:absolute;right:14px;top:14px;width:300px;max-height:calc(100% - 28px);overflow-y:auto;background:rgba(21,34,46,.97);border-radius:10px;padding:14px;font-size:13px;z-index:70"></div>
 </div>
 <div id="buyuk" onclick="this.style.display='none'"><span class="kapa">✕</span><img id="buyukimg"></div>
@@ -321,7 +331,7 @@ function linyeDon(i, h){
   const o = nesne(); o.linye = o.linye || {};
   const cur = (o.linye[h]||{}).durum || 'bekliyor';
   const sira = {bekliyor:'cekildi', cekildi:'revize', revize:'birlesti', birlesti:'bekliyor'};
-  o.linye[h] = {...(o.linye[h]||{mt:''}), durum: sira[cur]};
+  o.linye[h] = {...(o.linye[h]||{mt:''}), durum: sira[cur]}; try{gunluk(_hedefAd()+' '+h+' '+sira[cur]);}catch(_g){}
   o.kablo = Object.values(o.linye).some(l=>l.durum==='cekildi'||l.durum==='revize');
   ciz(); ac('db', i);
 }
@@ -440,11 +450,11 @@ function ac(tip,i){
     <div class="row"><button class="btn warn" onclick="sil()">Sil</button><button class="btn" onclick="kapat()">Kapat</button></div>`;
   p.innerHTML = tip==='db' ? `
     <h3>Driver Box <input value="${o.id}" style="width:50px;background:#0f1923;color:#fff;border:1px solid #33567a;border-radius:4px;padding:2px 6px" onchange="nesne().id=this.value;ciz()"></h3>
-    <label><input type="checkbox" ${o.montaj?'checked':''} onchange="nesne().montaj=this.checked;ciz()"> Montajlı</label>
-    <label><input type="checkbox" ${o.kablo?'checked':''} onchange="nesne().kablo=this.checked;ciz()"> Kablo imalatı var</label>
+    <label><input type="checkbox" ${o.montaj?'checked':''} onchange="nesne().montaj=this.checked;try{gunluk(_hedefAd()+' montaj '+(this.checked?'işaretlendi':'kaldırıldı'));}catch(_g){}ciz()"> Montajlı</label>
+    <label><input type="checkbox" ${o.kablo?'checked':''} onchange="nesne().kablo=this.checked;try{gunluk(_hedefAd()+' kablo '+(this.checked?'işaretlendi':'kaldırıldı'));}catch(_g){}ciz()"> Kablo imalatı var</label>
     <label><input type="checkbox" ${o.revize?'checked':''} onchange="nesne().revize=this.checked;ciz()"> Revizyon görmüş</label>` + ortak : `
     <h3>Pano <input value="${o.kod}" style="width:120px;background:#0f1923;color:#fff;border:1px solid #33567a;border-radius:4px;padding:2px 6px" onchange="nesne().kod=this.value;ciz()"></h3>
-    <label><input type="checkbox" ${o.montaj?'checked':''} onchange="nesne().montaj=this.checked;ciz()"> Montajlı (teyitli)</label>` + ortak;
+    <label><input type="checkbox" ${o.montaj?'checked':''} onchange="nesne().montaj=this.checked;try{gunluk(_hedefAd()+' montaj '+(this.checked?'işaretlendi':'kaldırıldı'));}catch(_g){}ciz()"> Montajlı (teyitli)</label>` + ortak;
   ciz();
 }
 function kaydir(dx,dy){
@@ -453,11 +463,11 @@ function kaydir(dx,dy){
   ciz(); ac(secili.tip, secili.i);
 }
 function kapat(){ secili=null; document.getElementById('panel').style.display='none'; ciz(); }
-function sil(){ if(!confirm('Bu markör silinsin mi?'))return; (secili.tip==='db'?data.dbs:data.panos).splice(secili.i,1); kapat(); }
+function sil(){ if(!confirm('Bu markör silinsin mi?'))return; try{gunluk(_hedefAd()+' silindi');}catch(_g){} (secili.tip==='db'?data.dbs:data.panos).splice(secili.i,1); kapat(); }
 function ekle(tip){
   const cx = (vp.clientWidth/2 - ox)/scale/IW, cy = (vp.clientHeight/2 - oy)/scale/IH;
-  if(tip==='db'){ data.dbs.push({id:'YENİ',x:cx,y:cy,montaj:false,kablo:false,revize:false,not:'',fotolar:[]}); ac('db',data.dbs.length-1); }
-  else { data.panos.push({kod:'YENİ-ÇAP',x:cx,y:cy,montaj:false,not:'',fotolar:[]}); ac('pano',data.panos.length-1); }
+  if(tip==='db'){ data.dbs.push({id:'YENİ',x:cx,y:cy,montaj:false,kablo:false,revize:false,not:'',fotolar:[]}); try{gunluk('Yeni DB eklendi');}catch(_g){} ac('db',data.dbs.length-1); }
+  else { data.panos.push({kod:'YENİ-ÇAP',x:cx,y:cy,montaj:false,not:'',fotolar:[]}); try{gunluk('Yeni pano eklendi');}catch(_g){} ac('pano',data.panos.length-1); }
 }
 // --- fotoğraf işlemleri ---
 function fotoEkleSec(){ document.getElementById('fotosec').click(); }
@@ -471,6 +481,7 @@ async function fotoYukle(e){
   }
   e.target.value = '';
   kaydet();
+  try{gunluk(_hedefAd()+' fotoğraf eklendi');}catch(_g){}
   ac(secili.tip, secili.i);
 }
 document.getElementById('fotosec').onchange = fotoYukle;
@@ -934,7 +945,7 @@ function mahalEkle(){
 }
 function mahalSil(id){
   if(!confirm('Bu mahal silinsin mi? (Pano/DB verileri silinmez, sadece grup tanımı kalkar)')) return;
-  data.mahaller=(data.mahaller||[]).filter(x=>x.id!==id); kaydet(); mahalRender();
+  var _ad=(data.mahaller.find(x=>x.id===id)||{}).ad||''; data.mahaller=(data.mahaller||[]).filter(x=>x.id!==id); try{gunluk('Mahal silindi: '+_ad);}catch(_g){} kaydet(); mahalRender();
 }
 function mahalAdDegis(id){
   const m=data.mahaller.find(x=>x.id===id); if(!m) return;
@@ -984,6 +995,42 @@ function eksikAc(){
   h+=sec('📷 Tamam ama fotoğrafsız','#42a5f5', fotosuz.map(dbRow).join(''), fotosuz.length);
   p.innerHTML='<h3 style="font-size:14px;margin-bottom:8px">📋 Eksik Listesi</h3>'+h+'<button class="btn" style="width:100%;margin-top:6px" onclick="document.getElementById(\'eksikPanel\').style.display=\'none\'">Kapat</button>';
 }
+// ============ ROL / YETKİ / İŞLEM GÜNLÜĞÜ ============
+window.ROL = window.ROL || 'yonetici';
+var ROL_AD = {yonetici:'🟢 Yönetici', saha:'🟡 Saha', izleyici:'🔵 İzleyici'};
+function rolUygula(){
+  var rol=window.ROL||'yonetici';
+  document.body.setAttribute('data-rol', rol);
+  var rz=document.getElementById('rolRozet'); if(rz) rz.textContent=ROL_AD[rol]||rol;
+  document.querySelectorAll('[onclick*="gunlukAc()"]').forEach(function(e){ e.style.display=(rol==='yonetici')?'':'none'; });
+  var H=function(sels){ sels.forEach(function(sel){ document.querySelectorAll(sel).forEach(function(e){e.style.display='none';}); }); };
+  if(rol==='saha'){ H(["[onclick*=\"ekle('db')\"]","[onclick*=\"ekle('pano')\"]","[onclick*='kilitToggle()']","[onclick*='iceAktarSec()']"]); }
+  else if(rol==='izleyici'){ H(["[onclick*=\"ekle('db')\"]","[onclick*=\"ekle('pano')\"]","[onclick*='kilitToggle()']","[onclick*='iceAktarSec()']","[onclick*='raporAc()']","[onclick*='wpAc()']","[onclick*='geriAl()']","[onclick*='elleKaydet()']"]); }
+}
+function _hedefAd(){ try{ var o=nesne(); return secili.tip==='db'?('DB '+String(o.id).padStart(2,'0')):o.kod; }catch(e){ return '?'; } }
+function gunluk(metin){
+  try{
+    if(typeof firebase==='undefined'||!firebase.firestore) return;
+    if(window.ROL==='izleyici') return;
+    var u=(firebase.auth)?firebase.auth().currentUser:null;
+    firebase.firestore().collection('gunluk').add({p:window.ROL||'?', t:String(metin).slice(0,140), z:Date.now(), email:u?u.email:''});
+  }catch(e){}
+}
+function gunlukAc(){
+  try{kapat();}catch(e){}
+  ['raporPanel','raporListePanel','wpPanel','mahalPanel','eksikPanel'].forEach(function(id){var e=document.getElementById(id); if(e)e.style.display='none';});
+  var p=document.getElementById('gunlukPanel'); p.style.display='block';
+  p.innerHTML='<h3 style="font-size:14px;margin-bottom:8px">📜 İşlem Günlüğü</h3><div style="font-size:11px;color:#90a4ae;margin-bottom:8px">Kim ne yaptı (son 120 işlem):</div><div id="gunlukListe" style="font-size:12px">Yükleniyor...</div><button class="btn" style="width:100%;margin-top:10px" onclick="document.getElementById(\'gunlukPanel\').style.display=\'none\'">Kapat</button>';
+  try{
+    firebase.firestore().collection('gunluk').orderBy('z','desc').limit(120).get().then(function(qs){
+      var rows=[]; qs.forEach(function(d){rows.push(d.data());});
+      var renk={yonetici:'#19c37d',saha:'#ffb300',izleyici:'#42a5f5'}, ad={yonetici:'Yönetici',saha:'Saha',izleyici:'İzleyici'};
+      var el=document.getElementById('gunlukListe'); if(!el) return;
+      el.innerHTML = rows.length ? rows.map(function(r){ var d=new Date(r.z||0); function p2(n){return ('0'+n).slice(-2);} var z=p2(d.getDate())+'.'+p2(d.getMonth()+1)+' '+p2(d.getHours())+':'+p2(d.getMinutes()); return '<div style="display:flex;align-items:center;gap:7px;padding:6px 4px;border-bottom:1px solid #1d3144"><span style="width:9px;height:9px;border-radius:50%;background:'+(renk[r.p]||'#888')+';flex:none"></span><span style="flex:1"><b>'+(ad[r.p]||r.p||'?')+'</b> · '+(r.t||'')+'</span><span style="color:#7d93a3;font-size:10px;white-space:nowrap">'+z+'</span></div>'; }).join('') : '<div style="color:#7d93a3">Henüz kayıt yok.</div>';
+    }, function(){ var el=document.getElementById('gunlukListe'); if(el) el.textContent='Günlük okunamadı.'; });
+  }catch(e){}
+}
+function cikis(){ if(!confirm('Çıkış yapılsın mı? Rol değiştirmek için yeniden giriş gerekir.')) return; try{ firebase.auth().signOut(); }catch(e){} }
 function wpAc(){
   kapat(); document.getElementById('raporPanel').style.display='none';
   document.getElementById('raporListePanel').style.display='none';
@@ -1220,7 +1267,7 @@ function raporKaydet(){
     fotolar: raporFotolar
   };
   if(!r.montaj && !r.kablo && !r.revize && !r.not && !r.metraj){ alert('En az bir is isaretle veya aciklama yaz.'); return; }
-  data.raporlar.push(r);
+  data.raporlar.push(r); try{gunluk(r.hedef+' rapor eklendi'+(r.metraj?' ('+r.metraj+'m)':''));}catch(_g){}
   if(tip==='db'){
     if(r.montaj) data.dbs[i].montaj = true;
     if(r.kablo) data.dbs[i].kablo = true;
@@ -1465,7 +1512,12 @@ rsayGuncelle();
     ov.innerHTML =
       '<div style="width:300px;max-width:88vw;background:#13202e;border:1px solid #2a3f57;border-radius:14px;padding:22px;box-shadow:0 10px 40px rgba(0,0,0,.5)">'
       + '<div style="color:#fff;font-size:17px;font-weight:800;margin-bottom:4px">BHS Pafta — Giris</div>'
-      + '<div style="color:#8aa0b6;font-size:12px;margin-bottom:14px">Devam etmek icin ekip sifresini gir.</div>'
+      + '<div style="color:#8aa0b6;font-size:12px;margin-bottom:12px">Rolünü seç ve şifreni gir.</div>'
+      + '<select id="bhsRolSec" style="width:100%;box-sizing:border-box;background:#0f1923;color:#fff;border:1px solid #33567a;border-radius:8px;padding:11px;font-size:14px;margin-bottom:10px">'
+      +   '<option value="yonetici@bhs-pafta.com">🟢 Yönetici (tam yetki)</option>'
+      +   '<option value="saha@bhs-pafta.com" selected>🟡 Saha (durum/foto/rapor)</option>'
+      +   '<option value="izleyici@bhs-pafta.com">🔵 İzleyici (sadece görüntüle)</option>'
+      + '</select>'
       + '<input id="bhsSifre" type="password" inputmode="text" autocomplete="current-password" placeholder="Sifre" '
       + 'style="width:100%;box-sizing:border-box;background:#0f1923;color:#fff;border:1px solid #33567a;border-radius:8px;padding:11px;font-size:15px;margin-bottom:10px">'
       + '<button id="bhsGir" style="width:100%;background:#19c37d;color:#06281b;border:none;border-radius:8px;padding:11px;font-size:15px;font-weight:800;cursor:pointer">Gir</button>'
@@ -1481,7 +1533,8 @@ rsayGuncelle();
       if(!pw){ hata.textContent = 'Sifre bos olamaz.'; return; }
       btn.disabled = true; btn.textContent = 'Kontrol ediliyor...'; hata.textContent = '';
       try{
-        await fauth.signInWithEmailAndPassword(GIRIS_EMAIL, pw);
+        var _selEmail=(document.getElementById('bhsRolSec')||{}).value||GIRIS_EMAIL;
+        await fauth.signInWithEmailAndPassword(_selEmail, pw);
         // basarili -> onAuthStateChanged gizler
       }catch(e){
         hata.textContent = 'Sifre hatali, tekrar dene.';
@@ -1500,7 +1553,7 @@ rsayGuncelle();
   girisEkraniGoster();
   try{ fauth.setPersistence(firebase.auth.Auth.Persistence.LOCAL); }catch(e){}
   fauth.onAuthStateChanged((u)=>{
-    if(u){ girisEkraniGizle(); senkronBasla(); }
+    if(u){ window.ROL={'yonetici@bhs-pafta.com':'yonetici','saha@bhs-pafta.com':'saha','izleyici@bhs-pafta.com':'izleyici'}[u.email]||'saha'; girisEkraniGizle(); senkronBasla(); try{ if(typeof rolUygula==='function') setTimeout(rolUygula,120); }catch(e){} }
     else { girisEkraniGoster(); }
   });
 
