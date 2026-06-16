@@ -1002,6 +1002,8 @@ function rolUygula(){
   var rol=window.ROL||'yonetici';
   document.body.setAttribute('data-rol', rol);
   var rz=document.getElementById('rolRozet'); if(rz) rz.textContent=ROL_AD[rol]||rol;
+  // RESET: önce hepsini göster
+  ["[onclick*=\"ekle('db')\"]","[onclick*=\"ekle('pano')\"]","[onclick*='kilitToggle()']","[onclick*='iceAktarSec()']","[onclick*='raporAc()']","[onclick*='wpAc()']","[onclick*='geriAl()']","[onclick*='elleKaydet()']"].forEach(function(sel){ document.querySelectorAll(sel).forEach(function(e){e.style.display='';}); });
   document.querySelectorAll('[onclick*="gunlukAc()"]').forEach(function(e){ e.style.display=(rol==='yonetici')?'':'none'; });
   var H=function(sels){ sels.forEach(function(sel){ document.querySelectorAll(sel).forEach(function(e){e.style.display='none';}); }); };
   if(rol==='saha'){ H(["[onclick*=\"ekle('db')\"]","[onclick*=\"ekle('pano')\"]","[onclick*='kilitToggle()']","[onclick*='iceAktarSec()']"]); }
@@ -1030,7 +1032,7 @@ function gunlukAc(){
     }, function(){ var el=document.getElementById('gunlukListe'); if(el) el.textContent='Günlük okunamadı.'; });
   }catch(e){}
 }
-function cikis(){ if(!confirm('Çıkış yapılsın mı? Rol değiştirmek için yeniden giriş gerekir.')) return; try{ firebase.auth().signOut(); }catch(e){} }
+function cikis(){ if(!confirm('Çıkış yapılsın mı? Rol değiştirmek için yeniden giriş gerekir.')) return; try{ firebase.auth().signOut().then(function(){ location.reload(); }); }catch(e){ location.reload(); } }
 function wpAc(){
   kapat(); document.getElementById('raporPanel').style.display='none';
   document.getElementById('raporListePanel').style.display='none';
