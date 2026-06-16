@@ -1342,6 +1342,10 @@ rsayGuncelle();
           }
         }
         try{ await fdb.waitForPendingWrites(); }catch(_){}
+        // KORUMA: yerelde mahal yoksa buluttakini SILME (eski/yanlis zamanli sekme uzerine yazmasin)
+        if(!hafif.mahaller || !hafif.mahaller.length){
+          try{ const cur=await PAFTA.get(); if(cur.exists){ const cs=JSON.parse(cur.data().state); if(cs.mahaller && cs.mahaller.length){ hafif.mahaller=cs.mahaller; data.mahaller=cs.mahaller; } } }catch(_){}
+        }
         sonYazma = Date.now();
         await PAFTA.set({ state: JSON.stringify(hafif), updatedAt: sonYazma, yazan: istemci });
       }catch(e){ try{ console.warn('bulut yazma hata', e); }catch(_){} }
@@ -1358,7 +1362,7 @@ rsayGuncelle();
       }
       o.fotolar = arr; return o;
     }
-    const yeni = { dbs:[], panos:[], raporlar:[], mahaller: (hafif.mahaller||[]) };
+    const yeni = { dbs:[], panos:[], raporlar:[], mahaller: ((hafif.mahaller&&hafif.mahaller.length)?hafif.mahaller:(data.mahaller||[])) };
     for(const o of (hafif.dbs||[]))      yeni.dbs.push(await geri(Object.assign({}, o)));
     for(const o of (hafif.panos||[]))    yeni.panos.push(await geri(Object.assign({}, o)));
     for(const o of (hafif.raporlar||[])) yeni.raporlar.push(await geri(Object.assign({}, o)));
