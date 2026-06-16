@@ -106,7 +106,6 @@ header .sub{font-size:11px;color:var(--mut)}
   <button class="btn" style="background:#1f5e4a" onclick="wpAc()">💬 WP Raporu Yapıştır</button>
   <button class="btn" style="background:#3a2e6b" onclick="mahalAc()">🏘 Mahaller</button>
   <button class="btn" style="background:#5a3a26" onclick="eksikAc()">📋 Eksik Listesi</button>
-  <button class="btn" style="background:#1f5e4a" onclick="tyRaporAc()">📄 TY Rapor</button>
   <button class="btn" onclick="raporListeAc()">📋 Raporlar (<span id="rsay">0</span>)</button>
   <button class="btn" id="yedekBtn" onclick="disaAktar()">JSON dışa aktar</button>
   <button class="btn" onclick="jsonPaylas()">📤 Paylaş (WhatsApp…)</button>
@@ -152,7 +151,6 @@ header .sub{font-size:11px;color:var(--mut)}
   <div id="wpPanel" style="display:none;position:absolute;right:14px;top:14px;width:330px;max-height:calc(100% - 28px);overflow-y:auto;background:rgba(21,34,46,.97);border-radius:10px;padding:14px;font-size:13px;z-index:75"></div>
   <div id="mahalPanel" style="display:none;position:absolute;right:14px;top:14px;width:340px;max-height:calc(100% - 28px);overflow-y:auto;background:rgba(21,34,46,.97);border-radius:10px;padding:14px;font-size:13px;z-index:76"></div>
   <div id="eksikPanel" style="display:none;position:absolute;right:14px;top:14px;width:330px;max-height:calc(100% - 28px);overflow-y:auto;background:rgba(21,34,46,.97);border-radius:10px;padding:14px;font-size:13px;z-index:77"></div>
-  <div id="tyPanel" style="display:none;position:absolute;right:14px;top:14px;width:340px;max-height:calc(100% - 28px);overflow-y:auto;background:rgba(21,34,46,.97);border-radius:10px;padding:14px;font-size:13px;z-index:77"></div>
   <div id="raporListePanel" style="display:none;position:absolute;right:14px;top:14px;width:300px;max-height:calc(100% - 28px);overflow-y:auto;background:rgba(21,34,46,.97);border-radius:10px;padding:14px;font-size:13px;z-index:70"></div>
 </div>
 <div id="buyuk" onclick="this.style.display='none'"><span class="kapa">✕</span><img id="buyukimg"></div>
@@ -986,31 +984,6 @@ function eksikAc(){
   h+=sec('📷 Tamam ama fotoğrafsız','#42a5f5', fotosuz.map(dbRow).join(''), fotosuz.length);
   p.innerHTML='<h3 style="font-size:14px;margin-bottom:8px">📋 Eksik Listesi</h3>'+h+'<button class="btn" style="width:100%;margin-top:6px" onclick="document.getElementById(\'eksikPanel\').style.display=\'none\'">Kapat</button>';
 }
-function tyRaporAc(){
-  try{ kapat(); }catch(e){}
-  ['raporPanel','raporListePanel','wpPanel','mahalPanel','eksikPanel'].forEach(function(id){var e=document.getElementById(id); if(e)e.style.display='none';});
-  var p=document.getElementById('tyPanel'); p.style.display='block';
-  var tarihler=[]; (data.raporlar||[]).forEach(function(r){ if(r.tarih && tarihler.indexOf(r.tarih)<0) tarihler.push(r.tarih); });
-  tarihler.sort(); var bugun=tarihler.length?tarihler[tarihler.length-1]:(new Date().toISOString().slice(0,10));
-  p.innerHTML='<h3 style="font-size:14px;margin-bottom:8px">📄 Günlük TY Rapor</h3>'+
-    '<div style="font-size:11px;color:#90a4ae;margin-bottom:6px">Tarih seç, o günün rapor kayıtlarından metin üretilir:</div>'+
-    '<input type="date" id="tyTarih" value="'+bugun+'" onchange="tyRaporUret(this.value)" style="width:100%;background:#0f1923;color:#fff;border:1px solid #33567a;border-radius:6px;padding:8px;margin-bottom:8px">'+
-    '<textarea id="tyCikti" rows="12" readonly style="width:100%;background:#0f1923;color:#e7eef4;border:1px solid #33567a;border-radius:6px;padding:9px;font-size:12px;font-family:monospace"></textarea>'+
-    '<button class="btn" style="width:100%;margin-top:8px;background:#1f5e4a" onclick="tyKopyala()">📋 Metni Kopyala</button>'+
-    '<button class="btn" style="width:100%;margin-top:6px" onclick="document.getElementById(\'tyPanel\').style.display=\'none\'">Kapat</button>';
-  tyRaporUret(bugun);
-}
-function tyRaporUret(tarih){
-  var rs=(data.raporlar||[]).filter(function(r){return r.tarih===tarih;});
-  var d=tarih.split('-'); var trh=d.length===3?(d[2]+'.'+d[1]+'.'+d[0]):tarih;
-  var s='Tarih: '+trh+'\nBölge: BHS Hillside Bodrum\n\nYapılan İşler:\n';
-  if(!rs.length){ s+='- (bu tarihte rapor kaydı yok)\n'; }
-  else { rs.forEach(function(r){ var isler=[r.montaj?'montaj':'',r.kablo?'kablo çekimi':'',r.revize?'revizyon':''].filter(Boolean).join(' + ')||'iş'; s+='- '+(r.hedef||'?')+': '+isler+(r.metraj?' ('+r.metraj+' m)':'')+((r.not&&r.not.replace(/^WP:\s*/,'').trim())?' — '+r.not.replace(/^WP:\s*/,'').replace(/\n/g,' ').slice(0,80):'')+'\n'; }); }
-  var fc=0; rs.forEach(function(r){ fc+=(r.fotolar||[]).length; });
-  if(fc) s+='\nNotlar:\n- İlgili '+fc+' fotoğraf pafta kaydına eklendi.\n';
-  var el=document.getElementById('tyCikti'); if(el) el.value=s; window._tyMetin=s;
-}
-function tyKopyala(){ if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(window._tyMetin||'').then(function(){try{toast('TY rapor kopyalandı');}catch(e){}},function(){}); } else { var el=document.getElementById('tyCikti'); if(el){el.select();document.execCommand('copy');} } }
 function wpAc(){
   kapat(); document.getElementById('raporPanel').style.display='none';
   document.getElementById('raporListePanel').style.display='none';
