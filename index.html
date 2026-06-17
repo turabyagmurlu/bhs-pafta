@@ -1035,11 +1035,32 @@ function gunlukAc(){
   }catch(e){}
 }
 function cikis(){ if(!confirm('Çıkış yapılsın mı? Rol değiştirmek için yeniden giriş gerekir.')) return; try{ firebase.auth().signOut().then(function(){ location.reload(); }); }catch(e){ location.reload(); } }
-// ============ SAHA RAPORLARI → PAFTA ENTEGRASYONU ============
-window._aktifRapor = window._aktifRapor || null;
+// ============ SAHA RAPORLARI → PAFTA (onaylı saf veri çekme) ============
 function _rpEsc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
 function _rpKisiAd(k){ return {durmus:'Durmuş',halit:'Halit',gurkan:'Gürkan'}[k]||k||'?'; }
 function _rpTrh(t){ if(!t) return ''; var p=String(t).split('-'); return p.length===3?(p[2]+'.'+p[1]+'.'+p[0]):t; }
+function _rpPanoBul(kod){ var t=String(kod||'').replace(/\s+/g,'').toLocaleUpperCase('tr'); return data.panos.find(function(x){return (x.kod||'').replace(/\s+/g,'').toLocaleUpperCase('tr')===t;})||null; }
+function _rpDbBul(kod){ var m=String(kod||'').match(/(\d{1,2})/); if(!m) return null; var no=parseInt(m[1]); return data.dbs.find(function(x){return parseInt(x.id)===no;})||null; }
+function _rpUygulaItem(it, tarih){
+  var o = (it.hedefTip==='db') ? _rpDbBul(it.hedefKod) : _rpPanoBul(it.hedefKod);
+  if(!o){ data.raporlar.push({tarih:tarih, hedef:(it.hedefKod||'?')+' — eşleşmedi', montaj:false, kablo:(it.is==='kablo'||it.is==='linye'), revize:it.is==='revize', metraj:it.metraj||null, adet:null, not:'Saf veri: '+(it.satir||'').slice(0,100), fotolar:[]}); return false; }
+  var ad = o.kod || ('DB '+String(o.id).padStart(2,'0'));
+  if(it.is==='linye' && it.linye){
+    o.linye=o.linye||{}; var eski=o.linye[it.linye]||{};
+    o.linye[it.linye]={durum:(it.durum||'cekildi'), mt:(it.metraj?String(it.metraj):(eski.mt||''))};
+    o.ekLinye=o.ekLinye||[]; if(o.ekLinye.indexOf(it.linye)<0 && !(eski.durum)) o.ekLinye.push(it.linye);
+    if(it.hedefTip==='db') o.kablo=true;
+    data.raporlar.push({tarih:tarih, hedef:ad+' '+it.linye, montaj:false, kablo:true, revize:it.durum==='revize', metraj:it.metraj||null, adet:null, not:'Saf veri: '+(it.satir||'').slice(0,100), fotolar:[]});
+  } else if(it.is==='montaj'){ o.montaj=true;
+    data.raporlar.push({tarih:tarih, hedef:ad, montaj:true, kablo:false, revize:false, metraj:null, adet:null, not:'Saf veri: '+(it.satir||'').slice(0,100), fotolar:[]});
+  } else if(it.is==='revize'){ o.revize=true;
+    data.raporlar.push({tarih:tarih, hedef:ad, montaj:false, kablo:false, revize:true, metraj:null, adet:null, not:'Saf veri: '+(it.satir||'').slice(0,100), fotolar:[]});
+  } else { if(it.hedefTip==='db') o.kablo=true;
+    if(it.kesit||it.metraj) o.not=(o.not?o.not+'\n':'')+'['+tarih+'] kablo '+(it.kesit||'')+(it.metraj?(' '+it.metraj+'m'):'');
+    data.raporlar.push({tarih:tarih, hedef:ad, montaj:false, kablo:true, revize:false, metraj:it.metraj||null, adet:null, not:'Saf veri: '+(it.satir||'').slice(0,100), fotolar:[]});
+  }
+  return true;
+}
 function raporPaftaAc(){
   try{ kapat(); }catch(e){}
   ['raporPanel','raporListePanel','wpPanel','mahalPanel','eksikPanel','gunlukPanel'].forEach(function(id){var e=document.getElementById(id); if(e)e.style.display='none';});
@@ -1050,72 +1071,56 @@ function raporPaftaAc(){
     var arr=[]; snap.forEach(function(d){arr.push(Object.assign({_id:d.id}, d.data()));});
     window._sahaRaporlar=arr; raporPaftaRender();
   }).catch(function(e){
-    p.innerHTML='<h3 style="font-size:14px;margin-bottom:8px">📥 Saha Raporları</h3><div style="color:#ff8a80;font-size:12px">Okunamadı: '+(e.code||e.message||'hata')+'<br><span style="color:#90a4ae">Giriş yapmış olman gerekir.</span></div><button class="btn" style="width:100%;margin-top:8px" onclick="document.getElementById(\'raporSahaPanel\').style.display=\'none\'">Kapat</button>';
+    p.innerHTML='<h3 style="font-size:14px;margin-bottom:8px">📥 Saha Raporları</h3><div style="color:#ff8a80;font-size:12px">Okunamadı: '+(e.code||e.message||'hata')+'</div><button class="btn" style="width:100%;margin-top:8px" onclick="document.getElementById(\'raporSahaPanel\').style.display=\'none\'">Kapat</button>';
   });
 }
 function raporPaftaRender(){
   var p=document.getElementById('raporSahaPanel'); if(!p) return;
   var arr=window._sahaRaporlar||[];
-  var bekleyen=arr.filter(function(r){return !r.paftaIslendi;});
-  var manuel=arr.filter(function(r){return r.paftaIslendi==='manuel';});
-  var islenen=arr.filter(function(r){return r.paftaIslendi===true;});
-  function kart(r){
-    var konum=r.konum?'<span style="color:#9fd2ff">'+_rpEsc(r.konum)+'</span> · ':'';
+  var hazir=arr.filter(function(r){return r.onayli===true && !r.paftaUygulandi;});
+  var cekilmis=arr.filter(function(r){return r.paftaUygulandi===true;});
+  var bekleyen=arr.filter(function(r){return !r.onayli;});
+  var topKalem=hazir.reduce(function(a,r){return a+((r.paftaVeri||[]).length);},0);
+  function ozet(r){
+    var kalem=(r.paftaVeri||[]).map(function(it){ return (it.hedefKod||'?')+(it.linye?(' '+it.linye):'')+(it.metraj?(' '+it.metraj+'m'):'')+' · '+it.is; }).join('<br>');
     return '<div style="background:#10212e;border:1px solid #2a4258;border-radius:8px;padding:8px 10px;margin-bottom:7px">'
-      +'<div style="font-size:11px;color:#7d93a3">'+_rpKisiAd(r.kisi)+' · '+_rpTrh(r.tarih)+' · '+_rpEsc(r.ekleyen||'')+'</div>'
-      +'<div style="font-size:12px;margin:3px 0;color:#dde">'+konum+_rpEsc((r.metin||'').slice(0,140))+'</div>'
-      +'<div style="display:flex;gap:6px;margin-top:5px">'
-      +'<button class="btn" style="flex:1;background:#2e6b3a;font-size:11px;padding:5px" onclick="raporPaftaCozumle(\''+r._id+'\')">🔍 Çözümle & İşle</button>'
-      +'<button class="btn" style="flex:1;background:#5a3a26;font-size:11px;padding:5px" onclick="raporPaftaManuel(\''+r._id+'\')">🗂 İşlenmedi</button>'
-      +'</div></div>';
+      +'<div style="font-size:11px;color:#7d93a3">'+_rpKisiAd(r.kisi)+' · '+_rpTrh(r.tarih)+' · '+_rpEsc(r.onaylayan||r.ekleyen||'')+'</div>'
+      +'<div style="font-size:11.5px;margin-top:3px;color:#cfe3ea">'+kalem+'</div></div>';
   }
   var h='<h3 style="font-size:14px;margin-bottom:4px">📥 Saha Raporları</h3>';
-  h+='<div style="color:#90a4ae;font-size:11px;margin-bottom:8px">⏳ Bekleyen: '+bekleyen.length+' · ✓ İşlenen: '+islenen.length+' · 🗂 Manuel: '+manuel.length+' <a onclick="raporPaftaAc()" style="color:#9fd2ff;cursor:pointer;margin-left:6px">↻ yenile</a></div>';
-  if(!bekleyen.length) h+='<div style="color:#5b7184;font-size:12px;padding:6px 0">Bekleyen rapor yok 👍</div>';
-  else h+=bekleyen.map(kart).join('');
-  if(manuel.length){
-    h+='<div style="font-size:12px;font-weight:700;color:#cfa06b;margin:12px 0 5px">🗂 İşlenmedi / Manuel ('+manuel.length+')</div>';
-    h+=manuel.map(function(r){ return '<div style="background:#0f1923;border:1px solid #3a2e1c;border-radius:7px;padding:6px 9px;margin-bottom:5px;font-size:11px;color:#c8b89a"><b>'+_rpKisiAd(r.kisi)+'</b> '+_rpTrh(r.tarih)+' — '+_rpEsc((r.konum?r.konum+': ':'')+(r.metin||'').slice(0,90))+' <a onclick="raporPaftaGeriAl(\''+r._id+'\')" style="color:#9fd2ff;cursor:pointer">↩ geri al</a></div>'; }).join('');
+  h+='<div style="color:#90a4ae;font-size:11px;margin-bottom:8px">✓ Onaylı-hazır: '+hazir.length+' · ✓✓ Çekilmiş: '+cekilmis.length+' · ⏳ Onay bekleyen: '+bekleyen.length+' <a onclick="raporPaftaAc()" style="color:#9fd2ff;cursor:pointer;margin-left:4px">↻</a></div>';
+  if(hazir.length){
+    h+='<button class="btn" style="width:100%;background:#1b5e20;font-weight:700;margin-bottom:8px" onclick="raporPaftaCek()">📥 Paftaya Çek ('+hazir.length+' rapor · '+topKalem+' kalem)</button>';
+    h+=hazir.map(ozet).join('');
+  } else {
+    h+='<div style="color:#5b7184;font-size:12px;padding:6px 0">Çekilecek onaylı rapor yok.</div>';
+  }
+  if(bekleyen.length) h+='<div style="font-size:11px;color:#cfa06b;margin-top:8px">⏳ '+bekleyen.length+' rapor henüz rapor sayfasında onaylanmadı.</div>';
+  if(cekilmis.length){
+    h+='<div style="font-size:12px;font-weight:700;color:#7dd3fc;margin:12px 0 5px">✓✓ Çekilmiş ('+cekilmis.length+')</div>';
+    h+=cekilmis.slice(0,30).map(function(r){ return '<div style="font-size:11px;color:#8aa2b4;padding:3px 5px;border-bottom:1px solid #1d3144">'+_rpKisiAd(r.kisi)+' · '+_rpTrh(r.tarih)+' · '+((r.paftaVeri||[]).length)+' kalem</div>'; }).join('');
   }
   h+='<button class="btn" style="width:100%;margin-top:10px" onclick="document.getElementById(\'raporSahaPanel\').style.display=\'none\'">Kapat</button>';
   p.innerHTML=h;
 }
-function raporPaftaCozumle(id){
-  var r=(window._sahaRaporlar||[]).find(function(x){return x._id===id;}); if(!r) return;
-  wpAc();
-  var ta=document.getElementById('wpMetin'); if(ta) ta.value=(r.konum?r.konum+'\n':'')+(r.metin||'');
-  window._aktifRapor=r;
-  try{ wpCozumle(); }catch(e){}
-  var dt=document.getElementById('wpTarih'); if(dt&&r.tarih) dt.value=r.tarih;
+function raporPaftaCek(){
+  var hazir=(window._sahaRaporlar||[]).filter(function(r){return r.onayli===true && !r.paftaUygulandi;});
+  if(!hazir.length){ alert('Çekilecek onaylı rapor yok.'); return; }
+  var topKalem=hazir.reduce(function(a,r){return a+((r.paftaVeri||[]).length);},0);
+  if(!confirm(hazir.length+' onaylı rapor ('+topKalem+' kalem) paftaya çekilecek. Devam?')) return;
+  var uyg=0, esz=0;
+  hazir.forEach(function(r){
+    var tarih=r.tarih||new Date().toISOString().slice(0,10);
+    (r.paftaVeri||[]).forEach(function(it){ if(_rpUygulaItem(it, tarih)) uyg++; else esz++; });
+  });
+  try{ kaydet(); }catch(e){}
+  try{ if(typeof rsayGuncelle==='function') rsayGuncelle(); }catch(e){}
+  try{ if(typeof ciz==='function') ciz(); }catch(e){}
+  hazir.forEach(function(r){ try{ firebase.firestore().collection('sahaRaporlari').doc(r._id).update({paftaUygulandi:true, uygZaman:Date.now(), ceken:(window.ROL||'')}); r.paftaUygulandi=true; }catch(e){} });
+  try{ gunluk(hazir.length+' onaylı saha raporu paftaya çekildi ('+uyg+' kalem)'); }catch(e){}
+  raporPaftaRender();
+  alert('✓ '+uyg+' kalem paftaya işlendi'+(esz?(', '+esz+' kalem eşleşmedi (rapor olarak eklendi)'):'')+'.');
 }
-function raporPaftaManuel(id){
-  if(typeof firebase==='undefined') return;
-  firebase.firestore().collection('sahaRaporlari').doc(id).update({paftaIslendi:'manuel', paftaZaman:Date.now()}).then(function(){
-    var r=(window._sahaRaporlar||[]).find(function(x){return x._id===id;}); if(r) r.paftaIslendi='manuel'; raporPaftaRender();
-    try{ gunluk('saha raporu manuel/işlenmedi işaretlendi'); }catch(e){}
-  }).catch(function(e){ alert('İşaretlenemedi: '+(e.code||e.message)); });
-}
-function raporPaftaGeriAl(id){
-  if(typeof firebase==='undefined') return;
-  firebase.firestore().collection('sahaRaporlari').doc(id).update({paftaIslendi:firebase.firestore.FieldValue.delete(), paftaZaman:firebase.firestore.FieldValue.delete()}).then(function(){
-    var r=(window._sahaRaporlar||[]).find(function(x){return x._id===id;}); if(r){ delete r.paftaIslendi; } raporPaftaRender();
-  }).catch(function(e){ alert('Geri alınamadı: '+(e.code||e.message)); });
-}
-// wpAc sar: manuel acilista aktif rapor sifirlansin
-(function(){ if(window._wpAcSar) return; window._wpAcSar=true; var _oa=window.wpAc;
-  window.wpAc=function(){ window._aktifRapor=null; return _oa.apply(this,arguments); }; })();
-// wpUygula sar: rapordan gelip islenince Firestore'da isaretle
-(function(){ if(window._wpUygSar) return; window._wpUygSar=true; var _ou=window.wpUygula;
-  window.wpUygula=function(){
-    var ar=window._aktifRapor;
-    _ou.apply(this,arguments);
-    if(ar && typeof firebase!=='undefined' && firebase.firestore){
-      firebase.firestore().collection('sahaRaporlari').doc(ar._id).update({paftaIslendi:true, paftaZaman:Date.now(), paftaEkleyen:(window.ROL||'')}).catch(function(){});
-      ar.paftaIslendi=true; window._aktifRapor=null;
-      try{ gunluk('saha raporu paftaya işlendi: '+_rpKisiAd(ar.kisi)+' '+_rpTrh(ar.tarih)); }catch(e){}
-      var rp=document.getElementById('raporSahaPanel'); if(rp && rp.style.display!=='none') raporPaftaRender();
-    }
-  }; })();
 function wpAc(){
   kapat(); document.getElementById('raporPanel').style.display='none';
   document.getElementById('raporListePanel').style.display='none';
