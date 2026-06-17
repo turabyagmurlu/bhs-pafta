@@ -1043,23 +1043,28 @@ function _rpPanoBul(kod){ var t=String(kod||'').replace(/\s+/g,'').toLocaleUpper
 function _rpDbBul(kod){ var m=String(kod||'').match(/(\d{1,2})/); if(!m) return null; var no=parseInt(m[1]); return data.dbs.find(function(x){return parseInt(x.id)===no;})||null; }
 function _rpUygulaItem(it, tarih){
   var o = (it.hedefTip==='db') ? _rpDbBul(it.hedefKod) : _rpPanoBul(it.hedefKod);
-  if(!o){ data.raporlar.push({tarih:tarih, hedef:(it.hedefKod||'?')+' — eşleşmedi', montaj:false, kablo:(it.is==='kablo'||it.is==='linye'), revize:it.is==='revize', metraj:it.metraj||null, adet:null, not:'Saf veri: '+(it.satir||'').slice(0,100), fotolar:[]}); return false; }
+  if(!o){ data.raporlar.push({tarih:tarih, hedef:(it.hedefKod||'?')+' — eşleşmedi', montaj:false, kablo:(it.is==='kablo'||it.is==='linye'), revize:it.is==='revize', metraj:it.metraj||null, adet:null, not:'Saf veri: '+(it.satir||'').slice(0,100), fotolar:[]}); return {ok:false, desc:(it.hedefKod||'?')+' — EŞLEŞMEDİ ('+it.is+')'}; }
   var ad = o.kod || ('DB '+String(o.id).padStart(2,'0'));
+  var desc;
   if(it.is==='linye' && it.linye){
     o.linye=o.linye||{}; var eski=o.linye[it.linye]||{};
     o.linye[it.linye]={durum:(it.durum||'cekildi'), mt:(it.metraj?String(it.metraj):(eski.mt||''))};
     o.ekLinye=o.ekLinye||[]; if(o.ekLinye.indexOf(it.linye)<0 && !(eski.durum)) o.ekLinye.push(it.linye);
     if(it.hedefTip==='db') o.kablo=true;
     data.raporlar.push({tarih:tarih, hedef:ad+' '+it.linye, montaj:false, kablo:true, revize:it.durum==='revize', metraj:it.metraj||null, adet:null, not:'Saf veri: '+(it.satir||'').slice(0,100), fotolar:[]});
+    desc=ad+' '+it.linye+(it.metraj?(' '+it.metraj+'m'):'')+' '+(it.durum==='revize'?'revize':'çekildi');
   } else if(it.is==='montaj'){ o.montaj=true;
     data.raporlar.push({tarih:tarih, hedef:ad, montaj:true, kablo:false, revize:false, metraj:null, adet:null, not:'Saf veri: '+(it.satir||'').slice(0,100), fotolar:[]});
+    desc=ad+' montaj yapıldı';
   } else if(it.is==='revize'){ o.revize=true;
     data.raporlar.push({tarih:tarih, hedef:ad, montaj:false, kablo:false, revize:true, metraj:null, adet:null, not:'Saf veri: '+(it.satir||'').slice(0,100), fotolar:[]});
+    desc=ad+' revize';
   } else { if(it.hedefTip==='db') o.kablo=true;
     if(it.kesit||it.metraj) o.not=(o.not?o.not+'\n':'')+'['+tarih+'] kablo '+(it.kesit||'')+(it.metraj?(' '+it.metraj+'m'):'');
     data.raporlar.push({tarih:tarih, hedef:ad, montaj:false, kablo:true, revize:false, metraj:it.metraj||null, adet:null, not:'Saf veri: '+(it.satir||'').slice(0,100), fotolar:[]});
+    desc=ad+' kablo'+(it.kesit?(' '+it.kesit):'')+(it.metraj?(' '+it.metraj+'m'):'');
   }
-  return true;
+  return {ok:true, desc:desc};
 }
 function raporPaftaAc(){
   try{ kapat(); }catch(e){}
@@ -1111,13 +1116,18 @@ function raporPaftaCek(){
   var uyg=0, esz=0;
   hazir.forEach(function(r){
     var tarih=r.tarih||new Date().toISOString().slice(0,10);
-    (r.paftaVeri||[]).forEach(function(it){ if(_rpUygulaItem(it, tarih)) uyg++; else esz++; });
+    var kisi=_rpKisiAd(r.kisi);
+    (r.paftaVeri||[]).forEach(function(it){
+      var rr=_rpUygulaItem(it, tarih);
+      if(rr.ok) uyg++; else esz++;
+      try{ gunluk(kisi+' ('+_rpTrh(tarih)+') → '+rr.desc); }catch(e){}
+    });
   });
   try{ kaydet(); }catch(e){}
   try{ if(typeof rsayGuncelle==='function') rsayGuncelle(); }catch(e){}
   try{ if(typeof ciz==='function') ciz(); }catch(e){}
   hazir.forEach(function(r){ try{ firebase.firestore().collection('sahaRaporlari').doc(r._id).update({paftaUygulandi:true, uygZaman:Date.now(), ceken:(window.ROL||'')}); r.paftaUygulandi=true; }catch(e){} });
-  try{ gunluk(hazir.length+' onaylı saha raporu paftaya çekildi ('+uyg+' kalem)'); }catch(e){}
+  try{ gunluk('✓ '+hazir.length+' rapor paftaya çekildi (toplam '+uyg+' kalem'+(esz?(', '+esz+' eşleşmedi'):'')+')'); }catch(e){}
   raporPaftaRender();
   alert('✓ '+uyg+' kalem paftaya işlendi'+(esz?(', '+esz+' kalem eşleşmedi (rapor olarak eklendi)'):'')+'.');
 }
