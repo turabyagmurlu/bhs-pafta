@@ -1046,6 +1046,8 @@ function _rpUygulaItem(it, tarih){
   if(!o){ data.raporlar.push({tarih:tarih, hedef:(it.hedefKod||'?')+' — eşleşmedi', montaj:false, kablo:(it.is==='kablo'||it.is==='linye'), revize:it.is==='revize', metraj:it.metraj||null, not:'Saf veri: '+(it.satir||'').slice(0,100), fotolar:[]}); return {ok:false, desc:(it.hedefKod||'?')+' — EŞLEŞMEDİ ('+it.is+')'}; }
   var ad = o.kod || ('DB '+String(o.id).padStart(2,'0'));
   var _ek=(it.etiket?(' #'+it.etiket):'')+(it.adet?(' x'+it.adet):'');
+  var toAd=it.toKod||''; var _yon=toAd?(' → '+toAd):'';
+  if(it.toKod){ var _to=(it.toTip==='db')?_rpDbBul(it.toKod):_rpPanoBul(it.toKod); if(_to && _to.id!==undefined){ _to.kablo=true; _to.not=(_to.not?_to.not+'\n':'')+'['+tarih+'] '+ad+' kablosu geldi'; } }
   var desc;
   if(it.is==='linye' && it.linye){
     o.linye=o.linye||{}; var eski=o.linye[it.linye]||{};
@@ -1053,20 +1055,20 @@ function _rpUygulaItem(it, tarih){
     o.ekLinye=o.ekLinye||[]; if(o.ekLinye.indexOf(it.linye)<0 && !(eski.durum)) o.ekLinye.push(it.linye);
     if(it.hedefTip==='db') o.kablo=true;
     if(it.not||it.etiket||it.adet) o.not=(o.not?o.not+'\n':'')+'['+tarih+'] '+(it.not||'')+_ek;
-    data.raporlar.push({tarih:tarih, hedef:ad+' '+it.linye, montaj:false, kablo:true, revize:it.durum==='revize', metraj:it.metraj||null, not:'Saf veri: '+(it.satir||'').slice(0,90)+(it.not?(' | '+it.not):'')+_ek, adet:(it.adet||null), fotolar:[]});
-    desc=ad+' '+it.linye+(it.metraj?(' '+it.metraj+'m'):'')+' '+(it.durum==='revize'?'revize':'çekildi');
+    data.raporlar.push({tarih:tarih, hedef:ad+' '+it.linye+_yon, montaj:false, kablo:true, revize:it.durum==='revize', metraj:it.metraj||null, not:'Saf veri: '+(it.satir||'').slice(0,90)+(it.not?(' | '+it.not):'')+_ek, adet:(it.adet||null), fotolar:[]});
+    desc=ad+' '+it.linye+(it.metraj?(' '+it.metraj+'m'):'')+_yon+' '+(it.durum==='revize'?'revize':'çekildi');
   } else if(it.is==='montaj'){ o.montaj=true;
     if(it.not||it.etiket||it.adet) o.not=(o.not?o.not+'\n':'')+'['+tarih+'] '+(it.not||'')+_ek;
-    data.raporlar.push({tarih:tarih, hedef:ad, montaj:true, kablo:false, revize:false, metraj:null, not:'Saf veri: '+(it.satir||'').slice(0,90)+(it.not?(' | '+it.not):'')+_ek, adet:(it.adet||null), fotolar:[]});
-    desc=ad+' montaj yapıldı'+(it.not?(' ('+it.not+')'):'');
+    data.raporlar.push({tarih:tarih, hedef:ad+_yon, montaj:true, kablo:false, revize:false, metraj:null, not:'Saf veri: '+(it.satir||'').slice(0,90)+(it.not?(' | '+it.not):'')+_ek, adet:(it.adet||null), fotolar:[]});
+    desc=ad+_yon+' montaj yapıldı'+(it.not?(' ('+it.not+')'):'');
   } else if(it.is==='revize'){ o.revize=true;
     if(it.not||it.etiket||it.adet) o.not=(o.not?o.not+'\n':'')+'['+tarih+'] '+(it.not||'')+_ek;
-    data.raporlar.push({tarih:tarih, hedef:ad, montaj:false, kablo:false, revize:true, metraj:null, not:'Saf veri: '+(it.satir||'').slice(0,90)+(it.not?(' | '+it.not):'')+_ek, adet:(it.adet||null), fotolar:[]});
-    desc=ad+' revize'+(it.not?(' ('+it.not+')'):'');
+    data.raporlar.push({tarih:tarih, hedef:ad+_yon, montaj:false, kablo:false, revize:true, metraj:null, not:'Saf veri: '+(it.satir||'').slice(0,90)+(it.not?(' | '+it.not):'')+_ek, adet:(it.adet||null), fotolar:[]});
+    desc=ad+_yon+' revize'+(it.not?(' ('+it.not+')'):'');
   } else { if(it.hedefTip==='db') o.kablo=true;
     if(it.kesit||it.metraj||it.not||it.etiket||it.adet) o.not=(o.not?o.not+'\n':'')+'['+tarih+'] kablo '+(it.kesit||'')+(it.metraj?(' '+it.metraj+'m'):'')+(it.not?(' '+it.not):'')+_ek;
-    data.raporlar.push({tarih:tarih, hedef:ad, montaj:false, kablo:true, revize:false, metraj:it.metraj||null, not:'Saf veri: '+(it.satir||'').slice(0,90)+(it.not?(' | '+it.not):'')+_ek, adet:(it.adet||null), fotolar:[]});
-    desc=ad+' kablo'+(it.kesit?(' '+it.kesit):'')+(it.metraj?(' '+it.metraj+'m'):'');
+    data.raporlar.push({tarih:tarih, hedef:ad+_yon, montaj:false, kablo:true, revize:false, metraj:it.metraj||null, not:'Saf veri: '+(it.satir||'').slice(0,90)+(it.not?(' | '+it.not):'')+_ek, adet:(it.adet||null), fotolar:[]});
+    desc=ad+_yon+' kablo'+(it.kesit?(' '+it.kesit):'')+(it.metraj?(' '+it.metraj+'m'):'');
   }
   return {ok:true, desc:desc};
 }
