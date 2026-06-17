@@ -113,6 +113,7 @@ body[data-rol="saha"] [onclick*="mahalEkle()"],body[data-rol="izleyici"] [onclic
   <button class="btn" style="background:#3a2e6b" onclick="mahalAc()">🏘 Mahaller</button>
   <button class="btn" style="background:#5a3a26" onclick="eksikAc()">📋 Eksik Listesi</button>
   <button class="btn" style="background:#2e4a6b" onclick="gunlukAc()">📜 İşlem Günlüğü</button>
+  <button class="btn" style="background:#1f4a5e" onclick="raporPaftaAc()">📥 Saha Raporları</button>
   <span id="rolRozet" style="display:inline-block;padding:6px 12px;border-radius:8px;background:#10212e;border:1px solid #2a4258;font-size:12px;font-weight:700;color:#cfe3ea"></span>
   <button class="btn" style="background:#5a2626" onclick="cikis()">🚪 Çıkış</button>
   <button class="btn" onclick="raporListeAc()">📋 Raporlar (<span id="rsay">0</span>)</button>
@@ -161,6 +162,7 @@ body[data-rol="saha"] [onclick*="mahalEkle()"],body[data-rol="izleyici"] [onclic
   <div id="mahalPanel" style="display:none;position:absolute;right:14px;top:14px;width:340px;max-height:calc(100% - 28px);overflow-y:auto;background:rgba(21,34,46,.97);border-radius:10px;padding:14px;font-size:13px;z-index:76"></div>
   <div id="eksikPanel" style="display:none;position:absolute;right:14px;top:14px;width:330px;max-height:calc(100% - 28px);overflow-y:auto;background:rgba(21,34,46,.97);border-radius:10px;padding:14px;font-size:13px;z-index:77"></div>
   <div id="gunlukPanel" style="display:none;position:absolute;right:14px;top:14px;width:360px;max-height:calc(100% - 28px);overflow-y:auto;background:rgba(21,34,46,.97);border-radius:10px;padding:14px;font-size:13px;z-index:78"></div>
+  <div id="raporSahaPanel" style="display:none;position:absolute;right:14px;top:14px;width:360px;max-height:calc(100% - 28px);overflow-y:auto;background:rgba(21,34,46,.97);border-radius:10px;padding:14px;font-size:13px;z-index:79"></div>
   <div id="raporListePanel" style="display:none;position:absolute;right:14px;top:14px;width:300px;max-height:calc(100% - 28px);overflow-y:auto;background:rgba(21,34,46,.97);border-radius:10px;padding:14px;font-size:13px;z-index:70"></div>
 </div>
 <div id="buyuk" onclick="this.style.display='none'"><span class="kapa">✕</span><img id="buyukimg"></div>
@@ -834,7 +836,7 @@ function mahalDurum(m){
 }
 function mahalAc(){
   try{ kapat(); }catch(e){}
-  ['raporPanel','raporListePanel','wpPanel'].forEach(id=>{const e=document.getElementById(id); if(e) e.style.display='none';});
+  ['raporPanel','raporListePanel','wpPanel','raporSahaPanel'].forEach(id=>{const e=document.getElementById(id); if(e) e.style.display='none';});
   data.mahaller = data.mahaller || [];
   const p=document.getElementById('mahalPanel'); p.style.display='block';
   mahalRender();
@@ -1003,11 +1005,11 @@ function rolUygula(){
   document.body.setAttribute('data-rol', rol);
   var rz=document.getElementById('rolRozet'); if(rz) rz.textContent=ROL_AD[rol]||rol;
   // RESET: önce hepsini göster
-  ["[onclick*=\"ekle('db')\"]","[onclick*=\"ekle('pano')\"]","[onclick*='kilitToggle()']","[onclick*='iceAktarSec()']","[onclick*='raporAc()']","[onclick*='wpAc()']","[onclick*='geriAl()']","[onclick*='elleKaydet()']"].forEach(function(sel){ document.querySelectorAll(sel).forEach(function(e){e.style.display='';}); });
+  ["[onclick*=\"ekle('db')\"]","[onclick*=\"ekle('pano')\"]","[onclick*='kilitToggle()']","[onclick*='iceAktarSec()']","[onclick*='raporAc()']","[onclick*='wpAc()']","[onclick*='geriAl()']","[onclick*='elleKaydet()']","[onclick*='raporPaftaAc()']"].forEach(function(sel){ document.querySelectorAll(sel).forEach(function(e){e.style.display='';}); });
   document.querySelectorAll('[onclick*="gunlukAc()"]').forEach(function(e){ e.style.display=(rol==='yonetici')?'':'none'; });
   var H=function(sels){ sels.forEach(function(sel){ document.querySelectorAll(sel).forEach(function(e){e.style.display='none';}); }); };
   if(rol==='saha'){ H(["[onclick*=\"ekle('db')\"]","[onclick*=\"ekle('pano')\"]","[onclick*='kilitToggle()']","[onclick*='iceAktarSec()']"]); }
-  else if(rol==='izleyici'){ H(["[onclick*=\"ekle('db')\"]","[onclick*=\"ekle('pano')\"]","[onclick*='kilitToggle()']","[onclick*='iceAktarSec()']","[onclick*='raporAc()']","[onclick*='wpAc()']","[onclick*='geriAl()']","[onclick*='elleKaydet()']"]); }
+  else if(rol==='izleyici'){ H(["[onclick*=\"ekle('db')\"]","[onclick*=\"ekle('pano')\"]","[onclick*='kilitToggle()']","[onclick*='iceAktarSec()']","[onclick*='raporAc()']","[onclick*='wpAc()']","[onclick*='geriAl()']","[onclick*='elleKaydet()']","[onclick*='raporPaftaAc()']"]); }
 }
 function _hedefAd(){ try{ var o=nesne(); return secili.tip==='db'?('DB '+String(o.id).padStart(2,'0')):o.kod; }catch(e){ return '?'; } }
 function gunluk(metin){
@@ -1020,7 +1022,7 @@ function gunluk(metin){
 }
 function gunlukAc(){
   try{kapat();}catch(e){}
-  ['raporPanel','raporListePanel','wpPanel','mahalPanel','eksikPanel'].forEach(function(id){var e=document.getElementById(id); if(e)e.style.display='none';});
+  ['raporPanel','raporListePanel','wpPanel','mahalPanel','eksikPanel','raporSahaPanel'].forEach(function(id){var e=document.getElementById(id); if(e)e.style.display='none';});
   var p=document.getElementById('gunlukPanel'); p.style.display='block';
   p.innerHTML='<h3 style="font-size:14px;margin-bottom:8px">📜 İşlem Günlüğü</h3><div style="font-size:11px;color:#90a4ae;margin-bottom:8px">Kim ne yaptı (son 120 işlem):</div><div id="gunlukListe" style="font-size:12px">Yükleniyor...</div><button class="btn" style="width:100%;margin-top:10px" onclick="document.getElementById(\'gunlukPanel\').style.display=\'none\'">Kapat</button>';
   try{
@@ -1033,6 +1035,87 @@ function gunlukAc(){
   }catch(e){}
 }
 function cikis(){ if(!confirm('Çıkış yapılsın mı? Rol değiştirmek için yeniden giriş gerekir.')) return; try{ firebase.auth().signOut().then(function(){ location.reload(); }); }catch(e){ location.reload(); } }
+// ============ SAHA RAPORLARI → PAFTA ENTEGRASYONU ============
+window._aktifRapor = window._aktifRapor || null;
+function _rpEsc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+function _rpKisiAd(k){ return {durmus:'Durmuş',halit:'Halit',gurkan:'Gürkan'}[k]||k||'?'; }
+function _rpTrh(t){ if(!t) return ''; var p=String(t).split('-'); return p.length===3?(p[2]+'.'+p[1]+'.'+p[0]):t; }
+function raporPaftaAc(){
+  try{ kapat(); }catch(e){}
+  ['raporPanel','raporListePanel','wpPanel','mahalPanel','eksikPanel','gunlukPanel'].forEach(function(id){var e=document.getElementById(id); if(e)e.style.display='none';});
+  var p=document.getElementById('raporSahaPanel'); if(!p) return; p.style.display='block';
+  p.innerHTML='<h3 style="font-size:14px;margin-bottom:8px">📥 Saha Raporları</h3><div style="color:#90a4ae;font-size:11px">Bulut okunuyor…</div>';
+  if(typeof firebase==='undefined'||!firebase.firestore){ p.innerHTML+='<div style="color:#ff8a80;font-size:12px">Bulut bağlantısı yok.</div>'; return; }
+  firebase.firestore().collection('sahaRaporlari').orderBy('olus','desc').limit(400).get().then(function(snap){
+    var arr=[]; snap.forEach(function(d){arr.push(Object.assign({_id:d.id}, d.data()));});
+    window._sahaRaporlar=arr; raporPaftaRender();
+  }).catch(function(e){
+    p.innerHTML='<h3 style="font-size:14px;margin-bottom:8px">📥 Saha Raporları</h3><div style="color:#ff8a80;font-size:12px">Okunamadı: '+(e.code||e.message||'hata')+'<br><span style="color:#90a4ae">Giriş yapmış olman gerekir.</span></div><button class="btn" style="width:100%;margin-top:8px" onclick="document.getElementById(\'raporSahaPanel\').style.display=\'none\'">Kapat</button>';
+  });
+}
+function raporPaftaRender(){
+  var p=document.getElementById('raporSahaPanel'); if(!p) return;
+  var arr=window._sahaRaporlar||[];
+  var bekleyen=arr.filter(function(r){return !r.paftaIslendi;});
+  var manuel=arr.filter(function(r){return r.paftaIslendi==='manuel';});
+  var islenen=arr.filter(function(r){return r.paftaIslendi===true;});
+  function kart(r){
+    var konum=r.konum?'<span style="color:#9fd2ff">'+_rpEsc(r.konum)+'</span> · ':'';
+    return '<div style="background:#10212e;border:1px solid #2a4258;border-radius:8px;padding:8px 10px;margin-bottom:7px">'
+      +'<div style="font-size:11px;color:#7d93a3">'+_rpKisiAd(r.kisi)+' · '+_rpTrh(r.tarih)+' · '+_rpEsc(r.ekleyen||'')+'</div>'
+      +'<div style="font-size:12px;margin:3px 0;color:#dde">'+konum+_rpEsc((r.metin||'').slice(0,140))+'</div>'
+      +'<div style="display:flex;gap:6px;margin-top:5px">'
+      +'<button class="btn" style="flex:1;background:#2e6b3a;font-size:11px;padding:5px" onclick="raporPaftaCozumle(\''+r._id+'\')">🔍 Çözümle & İşle</button>'
+      +'<button class="btn" style="flex:1;background:#5a3a26;font-size:11px;padding:5px" onclick="raporPaftaManuel(\''+r._id+'\')">🗂 İşlenmedi</button>'
+      +'</div></div>';
+  }
+  var h='<h3 style="font-size:14px;margin-bottom:4px">📥 Saha Raporları</h3>';
+  h+='<div style="color:#90a4ae;font-size:11px;margin-bottom:8px">⏳ Bekleyen: '+bekleyen.length+' · ✓ İşlenen: '+islenen.length+' · 🗂 Manuel: '+manuel.length+' <a onclick="raporPaftaAc()" style="color:#9fd2ff;cursor:pointer;margin-left:6px">↻ yenile</a></div>';
+  if(!bekleyen.length) h+='<div style="color:#5b7184;font-size:12px;padding:6px 0">Bekleyen rapor yok 👍</div>';
+  else h+=bekleyen.map(kart).join('');
+  if(manuel.length){
+    h+='<div style="font-size:12px;font-weight:700;color:#cfa06b;margin:12px 0 5px">🗂 İşlenmedi / Manuel ('+manuel.length+')</div>';
+    h+=manuel.map(function(r){ return '<div style="background:#0f1923;border:1px solid #3a2e1c;border-radius:7px;padding:6px 9px;margin-bottom:5px;font-size:11px;color:#c8b89a"><b>'+_rpKisiAd(r.kisi)+'</b> '+_rpTrh(r.tarih)+' — '+_rpEsc((r.konum?r.konum+': ':'')+(r.metin||'').slice(0,90))+' <a onclick="raporPaftaGeriAl(\''+r._id+'\')" style="color:#9fd2ff;cursor:pointer">↩ geri al</a></div>'; }).join('');
+  }
+  h+='<button class="btn" style="width:100%;margin-top:10px" onclick="document.getElementById(\'raporSahaPanel\').style.display=\'none\'">Kapat</button>';
+  p.innerHTML=h;
+}
+function raporPaftaCozumle(id){
+  var r=(window._sahaRaporlar||[]).find(function(x){return x._id===id;}); if(!r) return;
+  wpAc();
+  var ta=document.getElementById('wpMetin'); if(ta) ta.value=(r.konum?r.konum+'\n':'')+(r.metin||'');
+  window._aktifRapor=r;
+  try{ wpCozumle(); }catch(e){}
+  var dt=document.getElementById('wpTarih'); if(dt&&r.tarih) dt.value=r.tarih;
+}
+function raporPaftaManuel(id){
+  if(typeof firebase==='undefined') return;
+  firebase.firestore().collection('sahaRaporlari').doc(id).update({paftaIslendi:'manuel', paftaZaman:Date.now()}).then(function(){
+    var r=(window._sahaRaporlar||[]).find(function(x){return x._id===id;}); if(r) r.paftaIslendi='manuel'; raporPaftaRender();
+    try{ gunluk('saha raporu manuel/işlenmedi işaretlendi'); }catch(e){}
+  }).catch(function(e){ alert('İşaretlenemedi: '+(e.code||e.message)); });
+}
+function raporPaftaGeriAl(id){
+  if(typeof firebase==='undefined') return;
+  firebase.firestore().collection('sahaRaporlari').doc(id).update({paftaIslendi:firebase.firestore.FieldValue.delete(), paftaZaman:firebase.firestore.FieldValue.delete()}).then(function(){
+    var r=(window._sahaRaporlar||[]).find(function(x){return x._id===id;}); if(r){ delete r.paftaIslendi; } raporPaftaRender();
+  }).catch(function(e){ alert('Geri alınamadı: '+(e.code||e.message)); });
+}
+// wpAc sar: manuel acilista aktif rapor sifirlansin
+(function(){ if(window._wpAcSar) return; window._wpAcSar=true; var _oa=window.wpAc;
+  window.wpAc=function(){ window._aktifRapor=null; return _oa.apply(this,arguments); }; })();
+// wpUygula sar: rapordan gelip islenince Firestore'da isaretle
+(function(){ if(window._wpUygSar) return; window._wpUygSar=true; var _ou=window.wpUygula;
+  window.wpUygula=function(){
+    var ar=window._aktifRapor;
+    _ou.apply(this,arguments);
+    if(ar && typeof firebase!=='undefined' && firebase.firestore){
+      firebase.firestore().collection('sahaRaporlari').doc(ar._id).update({paftaIslendi:true, paftaZaman:Date.now(), paftaEkleyen:(window.ROL||'')}).catch(function(){});
+      ar.paftaIslendi=true; window._aktifRapor=null;
+      try{ gunluk('saha raporu paftaya işlendi: '+_rpKisiAd(ar.kisi)+' '+_rpTrh(ar.tarih)); }catch(e){}
+      var rp=document.getElementById('raporSahaPanel'); if(rp && rp.style.display!=='none') raporPaftaRender();
+    }
+  }; })();
 function wpAc(){
   kapat(); document.getElementById('raporPanel').style.display='none';
   document.getElementById('raporListePanel').style.display='none';
