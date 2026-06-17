@@ -57,7 +57,7 @@ th{color:#7c93a5;font-weight:600} td{color:#dde}
     <div class="card"><h3>Besleme / Kumanda kabloları</h3><div class="cwrap"><canvas id="cBes"></canvas></div></div>
   </div>
   <div class="card"><h3>Günlük imalat aktivitesi (rapor sayısı)</h3><div class="cwrap"><canvas id="cGun"></canvas></div></div>
-  <div class="card"><h3>Mahal bazlı tamamlanma</h3><div id="mahalList"></div></div>
+  <div class="card"><h3>Mahal bazlı tamamlanma <span id="mahalOzet" style="font-weight:400;color:#86efac;font-size:12px"></span></h3><div id="mahalList"></div></div>
   <div class="card"><h3>Son raporlar</h3><div style="max-height:300px;overflow:auto"><table id="raporTbl"><thead><tr><th>Tarih</th><th>Hedef</th><th>İş</th><th>Metraj</th></tr></thead><tbody></tbody></table></div></div>
   <div class="foot">BHS Hillside Bodrum Peyzaj · canlı veriden üretildi</div>
 </div>
@@ -137,9 +137,12 @@ async function yukle(){
   var mhtml=mahaller.map(function(m){
     var uy=m.uyeler||[]; var tam=uy.filter(function(u){return nodeTam(nodeBul(u.t,u.k));}).length;
     var p=pct(tam,uy.length); var renk=p>=100?'#2dd4bf':(p>0?'#fcd34d':'#ff6b6b');
-    return '<div class="mrow"><div class="mlbl">'+(m.ad||'?')+'</div><div class="mbar"><div style="width:'+p+'%;background:'+renk+'"></div></div><div class="mval">%'+p+'</div></div>';
+    var rozet=p>=100?' <span style="background:#1c3a2b;color:#86efac;border:1px solid #2f6244;border-radius:20px;padding:1px 8px;font-size:10px;font-weight:700">✓ Tamam</span>':'';
+    return '<div class="mrow"><div class="mlbl">'+(m.ad||'?')+rozet+'</div><div class="mbar"><div style="width:'+p+'%;background:'+renk+'"></div></div><div class="mval">%'+p+'</div></div>';
   }).join('');
   document.getElementById('mahalList').innerHTML=mhtml||'<div style="color:#7c93a5;font-size:12px">Mahal yok</div>';
+  var tamM=mahaller.filter(function(m){var uy=m.uyeler||[];return uy.length&&uy.filter(function(u){return nodeTam(nodeBul(u.t,u.k));}).length===uy.length;}).length;
+  var mo=document.getElementById('mahalOzet'); if(mo) mo.textContent='· '+tamM+'/'+mahaller.length+' tamam';
 
   // ---- son raporlar ----
   var rs=raporlar.slice().sort(function(a,b){return String(b.tarih||'').localeCompare(String(a.tarih||''));}).slice(0,15);
