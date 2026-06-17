@@ -1,0 +1,149 @@
+<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BHS İlerleme Panosu</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,Arial,sans-serif;background:#0b1722;color:#e7eef4}
+.wrap{max-width:1200px;margin:0 auto;padding:18px}
+.hero{background:linear-gradient(135deg,#0f766e,#155e75 60%,#1e3a5f);border-radius:18px;padding:20px 24px;position:relative;overflow:hidden}
+.hero h1{font-size:23px} .hero p{opacity:.9;font-size:13px;margin-top:4px}
+.hero:after{content:"📊";position:absolute;right:20px;top:-6px;font-size:90px;opacity:.12}
+.gen{display:flex;align-items:center;gap:14px;margin-top:14px}
+.genbar{flex:1;height:16px;background:rgba(0,0,0,.3);border-radius:10px;overflow:hidden}
+.genbar>div{height:100%;background:linear-gradient(90deg,#2dd4bf,#5eead4);border-radius:10px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:16px 0}
+.kpi{background:#13212f;border:1px solid #20364a;border-radius:14px;padding:14px 16px}
+.kpi b{font-size:26px;display:block;color:#5eead4} .kpi span{font-size:12px;color:#9fb6c6}
+.kpi small{font-size:11px;color:#7c93a5}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:760px){.row{grid-template-columns:1fr}}
+.card{background:#13212f;border:1px solid #20364a;border-radius:14px;padding:16px;margin-bottom:14px}
+.card h3{font-size:14px;color:#9fd8d0;margin-bottom:12px}
+.mrow{display:flex;align-items:center;gap:10px;margin-bottom:9px;font-size:12px}
+.mlbl{width:150px;color:#cfe3ea;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mbar{flex:1;height:13px;background:#0b1722;border-radius:6px;overflow:hidden}.mbar>div{height:100%;border-radius:6px}
+.mval{width:42px;text-align:right;color:#9fb6c6}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th,td{text-align:left;padding:6px 8px;border-bottom:1px solid #1d3144}
+th{color:#7c93a5;font-weight:600} td{color:#dde}
+.giris{position:fixed;inset:0;background:#0b1722;display:flex;align-items:center;justify-content:center;padding:20px;z-index:99}
+.gbox{background:linear-gradient(135deg,#0f766e,#155e75 60%,#1e3a5f);border-radius:18px;padding:30px;max-width:360px;width:100%;text-align:center}
+.gbox h2{font-size:18px;margin-bottom:14px} .gbox label{display:block;text-align:left;font-size:12px;opacity:.85;margin:8px 0 4px}
+.gbox select,.gbox input{width:100%;padding:11px;border-radius:10px;border:1px solid rgba(255,255,255,.25);background:rgba(0,0,0,.25);color:#fff;font-size:14px}
+.gbox button{width:100%;margin-top:12px;padding:12px;border:none;border-radius:10px;background:#0b1722;color:#5eead4;font-weight:700;cursor:pointer}
+.gerr{color:#ffd2c8;font-size:12px;min-height:16px;margin-top:8px}
+.foot{text-align:center;color:#5b7184;font-size:11px;margin:18px 0}
+.yenile{cursor:pointer;color:#9fd2ff;font-size:12px}
+.cwrap{position:relative;height:240px}
+</style></head><body>
+<div class="giris" id="giris" style="display:none">
+  <div class="gbox"><h2>📊 BHS İlerleme Panosu</h2>
+  <div style="font-size:12px;opacity:.85;margin-bottom:6px">Profilinle giriş yap (paftadaki hesap).</div>
+  <label>Rol</label><select id="rol"><option value="yonetici">🟢 Yönetici</option><option value="saha" selected>🟡 Saha</option><option value="izleyici">🔵 İzleyici</option></select>
+  <label>Şifre</label><input id="pw" type="password" onkeydown="if(event.key==='Enter')gir()">
+  <button onclick="gir()">Giriş</button><div class="gerr" id="gerr"></div></div>
+</div>
+<div class="wrap" id="panel" style="display:none">
+  <div class="hero"><h1>BHS Hillside Bodrum — İlerleme Panosu</h1>
+    <p>Elektrik/peyzaj saha imalat durumu · <span id="zaman"></span> · <span class="yenile" onclick="location.reload()">↻ yenile</span></p>
+    <div class="gen"><div class="genbar"><div id="genbar"></div></div><b id="genpct" style="font-size:22px;color:#fff"></b></div>
+  </div>
+  <div class="kpis" id="kpis"></div>
+  <div class="row">
+    <div class="card"><h3>Driver Box durumu</h3><div class="cwrap"><canvas id="cDb"></canvas></div></div>
+    <div class="card"><h3>ÇAP/Pano durumu</h3><div class="cwrap"><canvas id="cPano"></canvas></div></div>
+  </div>
+  <div class="row">
+    <div class="card"><h3>Linye (hat) durumu</h3><div class="cwrap"><canvas id="cLinye"></canvas></div></div>
+    <div class="card"><h3>Besleme / Kumanda kabloları</h3><div class="cwrap"><canvas id="cBes"></canvas></div></div>
+  </div>
+  <div class="card"><h3>Günlük imalat aktivitesi (rapor sayısı)</h3><div class="cwrap"><canvas id="cGun"></canvas></div></div>
+  <div class="card"><h3>Mahal bazlı tamamlanma</h3><div id="mahalList"></div></div>
+  <div class="card"><h3>Son raporlar</h3><div style="max-height:300px;overflow:auto"><table id="raporTbl"><thead><tr><th>Tarih</th><th>Hedef</th><th>İş</th><th>Metraj</th></tr></thead><tbody></tbody></table></div></div>
+  <div class="foot">BHS Hillside Bodrum Peyzaj · canlı veriden üretildi</div>
+</div>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+const KONF={apiKey:"AIzaSyAl67_RrVoJie5lU1hLXtfVwzQtHRwzqzM",authDomain:"ty-peyzaj-71.firebaseapp.com",projectId:"ty-peyzaj-71",storageBucket:"ty-peyzaj-71.firebasestorage.app",messagingSenderId:"866573391906",appId:"1:866573391906:web:2a68e70ee82a6e602d927b"};
+const EMAP={yonetici:'yonetici@bhs-pafta.com',saha:'saha@bhs-pafta.com',izleyici:'izleyici@bhs-pafta.com'};
+firebase.initializeApp(KONF);
+function gerr(t){var e=document.getElementById('gerr');if(e)e.textContent=t;}
+async function gir(){var rol=document.getElementById('rol').value,pw=document.getElementById('pw').value;if(!pw){gerr('Şifre gir');return;}gerr('Giriş yapılıyor...');try{await firebase.auth().signInWithEmailAndPassword(EMAP[rol],pw);}catch(e){gerr('Hata: '+(e.code==='auth/invalid-credential'?'Şifre hatalı':(e.code||'giriş başarısız')));}}
+firebase.auth().onAuthStateChanged(async function(u){ if(!u){document.getElementById('giris').style.display='flex';return;} document.getElementById('giris').style.display='none'; try{ await yukle(); }catch(e){ document.getElementById('giris').style.display='flex'; gerr('Veri okunamadı: '+(e.code||e.message)); } });
+
+function pInt(v){var n=parseInt(String(v||'').replace(/[^0-9]/g,''));return isNaN(n)?0:n;}
+function pct(a,b){return b?Math.round(a/b*100):0;}
+var YAP=['cekildi','revize','birlesti'];
+
+async function yukle(){
+  var d=await firebase.firestore().collection('pafta').doc('bhs').get();
+  if(!d.exists) throw {message:'pafta/bhs yok'};
+  var st=JSON.parse(d.data().state||'{}'); var dbs=st.dbs||[],panos=st.panos||[],raporlar=st.raporlar||[],mahaller=st.mahaller||[];
+  document.getElementById('panel').style.display='block';
+  document.getElementById('zaman').textContent=new Date().toLocaleString('tr-TR');
+
+  // ---- sayımlar ----
+  var dbMontaj=dbs.filter(x=>x.montaj).length, dbKablo=dbs.filter(x=>x.kablo).length;
+  var panoMontaj=panos.filter(x=>x.montaj).length;
+  // linye
+  var lin={cekildi:0,revize:0,birlesti:0,bekliyor:0,top:0}, linMetraj=0;
+  function linSay(o){ var L=o.linye||{}; Object.keys(L).forEach(function(k){ var s=L[k].durum||'bekliyor'; lin[s]=(lin[s]||0)+1; lin.top++; linMetraj+=pInt(L[k].mt); }); }
+  panos.forEach(linSay); dbs.forEach(linSay);
+  var linYap=lin.cekildi+lin.revize+lin.birlesti;
+  // besleme/kumanda
+  var bes={cekildi:0,bekliyor:0,top:0}, besMetraj=0;
+  function besSay(o){ var b=(o.besleme&&o.besleme.kablolar)||[]; b.forEach(function(k){ if((k.durum||'bekliyor')==='cekildi'){bes.cekildi++;}else{bes.bekliyor++;} bes.top++; besMetraj+=pInt(k.mt); }); }
+  panos.forEach(besSay); dbs.forEach(besSay);
+
+  // ---- genel % (birim sayımı) ----
+  var topB=dbs.length*2+panos.length+lin.top+bes.top;
+  var yapB=dbMontaj+dbKablo+panoMontaj+linYap+bes.cekildi;
+  var genel=pct(yapB,topB);
+  document.getElementById('genbar').style.width=genel+'%';
+  document.getElementById('genpct').textContent='%'+genel;
+
+  // ---- KPI ----
+  var kpis=[
+    ['Genel tamamlanma','%'+genel,'tüm birimler'],
+    ['DB montaj','%'+pct(dbMontaj,dbs.length),dbMontaj+'/'+dbs.length],
+    ['DB kablo','%'+pct(dbKablo,dbs.length),dbKablo+'/'+dbs.length],
+    ['Pano montaj','%'+pct(panoMontaj,panos.length),panoMontaj+'/'+panos.length],
+    ['Linye çekildi','%'+pct(linYap,lin.top),linYap+'/'+lin.top],
+    ['Besleme/kumanda','%'+pct(bes.cekildi,bes.top),bes.cekildi+'/'+bes.top],
+    ['Toplam metraj',(linMetraj+besMetraj).toLocaleString('tr-TR')+' m','linye+besleme'],
+    ['Rapor sayısı',String(raporlar.length),'işlenen kayıt']
+  ];
+  document.getElementById('kpis').innerHTML=kpis.map(k=>'<div class="kpi"><b>'+k[1]+'</b><span>'+k[0]+'</span><br><small>'+k[2]+'</small></div>').join('');
+
+  // ---- grafikler ----
+  Chart.defaults.color='#9fb6c6'; Chart.defaults.borderColor='#1d3144';
+  var dgreen='#2dd4bf',amber='#fcd34d',red='#ff6b6b',blue='#60a5fa',gray='#46586b';
+  function dough(id,labels,vals,colors){ new Chart(document.getElementById(id),{type:'doughnut',data:{labels:labels,datasets:[{data:vals,backgroundColor:colors,borderWidth:0}]},options:{plugins:{legend:{position:'bottom'}},maintainAspectRatio:false}}); }
+  dough('cDb',['Montajlı','Montajsız'],[dbMontaj,dbs.length-dbMontaj],[dgreen,gray]);
+  dough('cPano',['Montajlı','Montajsız'],[panoMontaj,panos.length-panoMontaj],[dgreen,gray]);
+  dough('cLinye',['Çekildi','Revize','Birleşti','Bekliyor'],[lin.cekildi,lin.revize,lin.birlesti,lin.bekliyor],[dgreen,amber,blue,gray]);
+  dough('cBes',['Çekildi','Bekliyor'],[bes.cekildi,bes.bekliyor],[dgreen,gray]);
+
+  // günlük aktivite
+  var byG={}; raporlar.forEach(function(r){ var t=r.tarih||'?'; byG[t]=(byG[t]||0)+1; });
+  var gk=Object.keys(byG).filter(x=>x!=='?').sort().slice(-30);
+  new Chart(document.getElementById('cGun'),{type:'bar',data:{labels:gk.map(t=>{var p=t.split('-');return p.length===3?(p[2]+'.'+p[1]):t;}),datasets:[{label:'rapor',data:gk.map(t=>byG[t]),backgroundColor:dgreen}]},options:{plugins:{legend:{display:false}},maintainAspectRatio:false,scales:{y:{beginAtZero:true,ticks:{precision:0}}}}});
+
+  // ---- mahal ilerleme ----
+  function nodeBul(t,k){ return t==='db'? dbs.find(x=>String(x.id)===String(k)) : panos.find(x=>String(x.kod)===String(k)); }
+  function nodeTam(o){ if(!o) return false; var L=o.linye||{}; var keys=Object.keys(L); var linOk=keys.every(k=>YAP.indexOf(L[k].durum)>=0); return (o.montaj?true:false) && linOk; }
+  var mhtml=mahaller.map(function(m){
+    var uy=m.uyeler||[]; var tam=uy.filter(function(u){return nodeTam(nodeBul(u.t,u.k));}).length;
+    var p=pct(tam,uy.length); var renk=p>=100?'#2dd4bf':(p>0?'#fcd34d':'#ff6b6b');
+    return '<div class="mrow"><div class="mlbl">'+(m.ad||'?')+'</div><div class="mbar"><div style="width:'+p+'%;background:'+renk+'"></div></div><div class="mval">%'+p+'</div></div>';
+  }).join('');
+  document.getElementById('mahalList').innerHTML=mhtml||'<div style="color:#7c93a5;font-size:12px">Mahal yok</div>';
+
+  // ---- son raporlar ----
+  var rs=raporlar.slice().sort(function(a,b){return String(b.tarih||'').localeCompare(String(a.tarih||''));}).slice(0,15);
+  function trh(t){var p=String(t||'').split('-');return p.length===3?(p[2]+'.'+p[1]+'.'+p[0]):(t||'');}
+  document.querySelector('#raporTbl tbody').innerHTML=rs.map(function(r){var is=r.montaj?'montaj':r.revize?'revize':r.kablo?'kablo':'-';return '<tr><td>'+trh(r.tarih)+'</td><td>'+(r.hedef||'')+'</td><td>'+is+'</td><td>'+(r.metraj?r.metraj+' m':'')+'</td></tr>';}).join('');
+}
+</script></body></html>
