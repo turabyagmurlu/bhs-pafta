@@ -1137,23 +1137,41 @@ function raporPaftaCek(){
   if(!hazir.length){ alert('Çekilecek onaylı rapor yok.'); return; }
   var topKalem=hazir.reduce(function(a,r){return a+((r.paftaVeri||[]).length);},0);
   if(!confirm(hazir.length+' onaylı rapor ('+topKalem+' kalem) paftaya çekilecek. Devam?')) return;
-  var uyg=0, esz=0;
+  var uyg=0, esz=0, say={linye:0,besleme:0,otomasyon:0,montaj:0,revize:0}, detay=[];
   hazir.forEach(function(r){
     var tarih=r.tarih||new Date().toISOString().slice(0,10);
-    var kisi=_rpKisiAd(r.kisi);
+    var kisi=_rpKisiAd(r.kisi); var kalem=0;
     (r.paftaVeri||[]).forEach(function(it){
       var rr=_rpUygulaItem(it, tarih);
-      if(rr.ok) uyg++; else esz++;
+      if(rr.ok){ uyg++; kalem++; var t=(it.is==='linye'?'linye':it.is==='montaj'?'montaj':it.is==='revize'?'revize':it.is==='otomasyon'?'otomasyon':'besleme'); say[t]=(say[t]||0)+1; } else esz++;
       try{ gunluk(kisi+' ('+_rpTrh(tarih)+') → '+rr.desc); }catch(e){}
     });
+    detay.push({kisi:kisi, tarih:_rpTrh(tarih), kalem:kalem});
   });
   try{ kaydet(); }catch(e){}
   try{ if(typeof rsayGuncelle==='function') rsayGuncelle(); }catch(e){}
   try{ if(typeof ciz==='function') ciz(); }catch(e){}
   hazir.forEach(function(r){ try{ firebase.firestore().collection('sahaRaporlari').doc(r._id).update({paftaUygulandi:true, uygZaman:Date.now(), ceken:(window.ROL||'')}); r.paftaUygulandi=true; }catch(e){} });
   try{ gunluk('✓ '+hazir.length+' rapor paftaya çekildi (toplam '+uyg+' kalem'+(esz?(', '+esz+' eşleşmedi'):'')+')'); }catch(e){}
-  raporPaftaRender();
-  alert('✓ '+uyg+' kalem paftaya işlendi'+(esz?(', '+esz+' kalem eşleşmedi (rapor olarak eklendi)'):'')+'.');
+  _raporBasari(hazir.length, uyg, esz, say, detay);
+}
+function _raporBasari(rapor, uyg, esz, say, detay){
+  var p=document.getElementById('raporSahaPanel'); if(!p) return; p.style.display='block';
+  var et={linye:'linye',besleme:'besleme',otomasyon:'otomasyon/kumanda',montaj:'montaj',revize:'revize'};
+  var rozet=Object.keys(say).filter(function(k){return say[k]>0;}).map(function(k){ return '<span style="display:inline-block;background:#13212f;border:1px solid #2a4258;border-radius:20px;padding:3px 10px;margin:3px;font-size:11px;color:#9fd8d0"><b>'+say[k]+'</b> '+et[k]+'</span>'; }).join('');
+  var liste=detay.map(function(d){ return '<div style="display:flex;justify-content:space-between;border-bottom:1px solid #1d3144;padding:5px 2px;font-size:12px"><span>'+d.kisi+' · '+d.tarih+'</span><span style="color:#86efac">'+d.kalem+' kalem ✓</span></div>'; }).join('');
+  var h='<div style="text-align:center;padding:6px 2px">'
+    +'<div style="font-size:46px;line-height:1">✅</div>'
+    +'<div style="font-size:16px;font-weight:800;color:#86efac;margin:6px 0 2px">Başarıyla paftaya aktarıldı</div>'
+    +'<div style="color:#cfe3ea;font-size:13px"><b>'+rapor+'</b> rapor · <b>'+uyg+'</b> kalem işlendi</div>'
+    +'<div style="margin:8px 0">'+rozet+'</div>'
+    +(esz?('<div style="color:#ffb4a8;font-size:12px;background:#2a1717;border:1px solid #5b2b2b;border-radius:8px;padding:7px;margin:6px 0">⚠ '+esz+' kalem eşleşmedi — rapor listesine bilgi olarak eklendi (hedef seçili değildi).</div>'):'')
+    +'</div>'
+    +'<div style="font-size:11px;color:#8aa2b4;margin:4px 0">İşlenen raporlar:</div>'+liste
+    +'<div style="display:flex;gap:8px;margin-top:12px">'
+    +'<button class="btn" style="flex:1" onclick="raporPaftaAc()">↩ Listeye dön</button>'
+    +'<button class="btn" style="flex:1;background:#1b5e20" onclick="document.getElementById(\'raporSahaPanel\').style.display=\'none\'">Kapat</button></div>';
+  p.innerHTML=h;
 }
 function wpAc(){
   kapat(); document.getElementById('raporPanel').style.display='none';
