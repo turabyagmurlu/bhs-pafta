@@ -1073,20 +1073,18 @@ function _rpUygulaItem(it, tarih){
   } else {
     var sinif=_rpSinif(it.kesit, it.is);
     var tur=(sinif==='kumanda')?'otomasyon/kumanda':(sinif==='data')?'data':'besleme';
-    o.kablo=true;
-    if(it.hedefTip==='cap'){
-      o.besleme=o.besleme||{kaynak:'',kablolar:[]}; o.besleme.kablolar=o.besleme.kablolar||[];
-      var k=o.besleme.kablolar.find(function(x){ var t=String(x.tip||'').toLocaleLowerCase('tr');
-        if(sinif==='data') return /cat\s?6|utp/.test(t);
-        if(sinif==='kumanda') return /lihch|lıhch/.test(t);
-        return /n2xh|n2hx/.test(t); });
-      if(k){ k.durum='cekildi'; if(it.metraj) k.mt=String(it.metraj); if(it.adet) k.adet=it.adet; if(it.kesit) k.tip=it.kesit; }
-      else o.besleme.kablolar.push({tip:(it.kesit||(sinif==='kumanda'?'LIHCH':sinif==='data'?'CAT6':'N2XH')), adet:(it.adet||1), mt:(it.metraj?String(it.metraj):''), durum:'cekildi'});
-    } else {
-      if(it.kesit||it.metraj||it.not) o.not=(o.not?o.not+'\n':'')+'['+tarih+'] '+tur+' kablo '+(it.kesit||'')+(it.metraj?(' '+it.metraj+'m'):'')+(it.not?(' '+it.not):'')+_ek;
-    }
-    data.raporlar.push({tarih:tarih, hedef:ad+' ('+tur+')'+_yon, montaj:false, kablo:true, revize:false, metraj:it.metraj||null, not:'Saf veri: '+tur+' '+(it.kesit||'')+' '+(it.satir||'').slice(0,60)+(it.not?(' | '+it.not):'')+_ek, adet:(it.adet||null), fotolar:[]});
-    desc=ad+_yon+' '+tur+(it.kesit?(' '+it.kesit):'')+(it.metraj?(' '+it.metraj+'m'):'');
+    var dest=(it.toKod ? ((it.toTip==='db')?_rpDbBul(it.toKod):_rpPanoBul(it.toKod)) : null) || o;
+    dest.kablo=true; o.kablo=true;
+    dest.besleme=dest.besleme||{kaynak:'',kablolar:[]}; dest.besleme.kablolar=dest.besleme.kablolar||[];
+    var k=dest.besleme.kablolar.find(function(x){ var t=String(x.tip||'').toLocaleLowerCase('tr');
+      if(sinif==='data') return /cat\s?6|utp/.test(t);
+      if(sinif==='kumanda') return /lihch|lıhch/.test(t);
+      return /n2xh|n2hx/.test(t); });
+    if(k){ k.durum='cekildi'; if(it.metraj) k.mt=String(it.metraj); if(it.adet) k.adet=it.adet; }
+    else dest.besleme.kablolar.push({tip:(it.kesit||(sinif==='kumanda'?'LIHCH':sinif==='data'?'CAT6':'N2XH')), adet:(it.adet||1), mt:(it.metraj?String(it.metraj):''), durum:'cekildi'});
+    var dad=dest.kod||('DB '+String(dest.id).padStart(2,'0'));
+    data.raporlar.push({tarih:tarih, hedef:dad+' ('+tur+')', montaj:false, kablo:true, revize:false, metraj:it.metraj||null, not:'Saf veri: '+ad+'→'+dad+' '+tur+' '+(it.kesit||'')+_ek, adet:(it.adet||null), fotolar:[]});
+    desc=ad+_yon+' '+tur+(it.kesit?(' '+it.kesit):'')+(it.metraj?(' '+it.metraj+'m'):'')+' → '+dad;
   }
   return {ok:true, desc:desc};
 }
