@@ -1066,9 +1066,10 @@ function _rpUygulaItem(it, tarih){
     data.raporlar.push({tarih:tarih, hedef:ad+_yon, montaj:false, kablo:false, revize:true, metraj:null, not:'Saf veri: '+(it.satir||'').slice(0,90)+(it.not?(' | '+it.not):'')+_ek, adet:(it.adet||null), fotolar:[]});
     desc=ad+_yon+' revize'+(it.not?(' ('+it.not+')'):'');
   } else { if(it.hedefTip==='db') o.kablo=true;
-    if(it.kesit||it.metraj||it.not||it.etiket||it.adet) o.not=(o.not?o.not+'\n':'')+'['+tarih+'] kablo '+(it.kesit||'')+(it.metraj?(' '+it.metraj+'m'):'')+(it.not?(' '+it.not):'')+_ek;
-    data.raporlar.push({tarih:tarih, hedef:ad+_yon, montaj:false, kablo:true, revize:false, metraj:it.metraj||null, not:'Saf veri: '+(it.satir||'').slice(0,90)+(it.not?(' | '+it.not):'')+_ek, adet:(it.adet||null), fotolar:[]});
-    desc=ad+_yon+' kablo'+(it.kesit?(' '+it.kesit):'')+(it.metraj?(' '+it.metraj+'m'):'');
+    var tur=(it.is==='otomasyon')?'otomasyon':'besleme';
+    if(it.kesit||it.metraj||it.not||it.etiket||it.adet) o.not=(o.not?o.not+'\n':'')+'['+tarih+'] '+tur+' kablo '+(it.kesit||'')+(it.metraj?(' '+it.metraj+'m'):'')+(it.not?(' '+it.not):'')+_ek;
+    data.raporlar.push({tarih:tarih, hedef:ad+' ('+tur+')'+_yon, montaj:false, kablo:true, revize:false, metraj:it.metraj||null, not:'Saf veri: '+tur+' '+(it.satir||'').slice(0,80)+(it.not?(' | '+it.not):'')+_ek, adet:(it.adet||null), fotolar:[]});
+    desc=ad+_yon+' '+tur+' kablo'+(it.kesit?(' '+it.kesit):'')+(it.metraj?(' '+it.metraj+'m'):'');
   }
   return {ok:true, desc:desc};
 }
