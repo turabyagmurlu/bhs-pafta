@@ -251,10 +251,29 @@ function barGuncelle(){
   const yz = (a,b)=> b? Math.round(a/b*100) : 0;
   document.getElementById('bm-txt').textContent = `${dm}/${dt} — %${yz(dm,dt)}`;
   document.getElementById('bm-dolu').style.width = yz(dm,dt)+'%';
-  let _besBonus=0;
-  data.dbs.forEach(d=>{ if(d.kablo) return; if(d.besleme&&d.besleme.kablolar&&d.besleme.kablolar.length){ const _t=d.besleme.kablolar.length, _y=d.besleme.kablolar.filter(k=>k.durum==='cekildi'||k.durum==='revize'||k.durum==='birlesti').length; _besBonus+=0.40*(_y/_t); } });
-  const _kPct = dt? Math.round((dk+_besBonus)/dt*100) : 0;
-  document.getElementById('bk-txt').textContent = `${dk}/${dt} — %${_kPct}`;
+  // DB KABLOLAMA = besleme/kumanda %60 + linye %40 (her DB kendi linye sayisina gore normalize)
+  // besleme/kumanda kritik kalem oldugu icin agirlikli; "tek linye = tamam" yanilsamasi yok.
+  var _kW=0.6, _kDONE=['cekildi','revize','birlesti'];
+  function _kbiten(s){ return _kDONE.indexOf(s||'bekliyor')>=0; }
+  function _dbKabOran(o){
+    var bk=(o.besleme&&Array.isArray(o.besleme.kablolar))?o.besleme.kablolar:null;
+    if(!bk){ var key=String(o.id).padStart(2,'0'); var bd=(typeof BESLEME!=='undefined')?BESLEME[key]:null; bk=bd?bd.kablolar.map(function(){return{durum:'bekliyor'};}):[]; }
+    var besTot=bk.length, besDone=0, i; for(i=0;i<bk.length;i++) if(_kbiten(bk[i].durum)) besDone++;
+    var hatlar=[]; var hb=(typeof HATLAR!=='undefined')?HATLAR[String(o.id).padStart(2,'0')]:null; if(hb) hatlar=hb.hatlar.slice();
+    var gizli=o.gizliLinye||[]; hatlar=hatlar.filter(function(h){return gizli.indexOf(h)<0;});
+    (o.ekLinye||[]).forEach(function(h){ if(hatlar.indexOf(h)<0) hatlar.push(h); });
+    var linTot=hatlar.length, linDone=0;
+    hatlar.forEach(function(h){ var l=(o.linye&&o.linye[h])||{}; if(_kbiten(l.durum)) linDone++; });
+    var bes=besTot?besDone/besTot:null, lin=linTot?linDone/linTot:null;
+    if(bes!=null&&lin!=null) return _kW*bes+(1-_kW)*lin;
+    if(bes!=null) return bes;
+    if(lin!=null) return lin;
+    return null;
+  }
+  var _ksum=0,_kn=0,_ktam=0;
+  data.dbs.forEach(function(o){ var c=_dbKabOran(o); if(c==null) return; _ksum+=c; _kn++; if(c>=0.999)_ktam++; });
+  var _kPct = _kn? Math.round(_ksum/_kn*100) : 0;
+  document.getElementById('bk-txt').textContent = `${_ktam}/${dt} — %${_kPct}`;
   document.getElementById('bk-dolu').style.width = _kPct+'%';
   document.getElementById('bp-txt').textContent = `${pm}/${pt} — %${yz(pm,pt)}`;
   document.getElementById('bp-dolu').style.width = yz(pm,pt)+'%';
