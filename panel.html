@@ -94,12 +94,13 @@ async function yukle(){
   var linYap=lin.cekildi+lin.revize+lin.birlesti;
   // besleme/kumanda
   var bes={cekildi:0,bekliyor:0,top:0}, besMetraj=0;
-  function besSay(o){ var b=(o.besleme&&o.besleme.kablolar)||[]; b.forEach(function(k){ if((k.durum||'bekliyor')==='cekildi'){bes.cekildi++;}else{bes.bekliyor++;} bes.top++; besMetraj+=pInt(k.mt); }); }
+  function besSay(o){ var b=(o.besleme&&o.besleme.kablolar)||[]; b.forEach(function(k){ var s=k.durum||'bekliyor'; if(s==='cekildi'||s==='revize'||s==='birlesti'){bes.cekildi++;}else{bes.bekliyor++;} bes.top++; besMetraj+=pInt(k.mt); }); }
   panos.forEach(besSay); dbs.forEach(besSay);
 
   // ---- genel % (birim sayımı) ----
-  var topB=dbs.length*2+panos.length+lin.top+bes.top;
-  var yapB=dbMontaj+dbKablo+panoMontaj+linYap+bes.cekildi;
+  var besW=2; // besleme/kumanda kritik kalem: genel %'te agirlikli sayilir
+  var topB=dbs.length*2+panos.length+lin.top+bes.top*besW;
+  var yapB=dbMontaj+dbKablo+panoMontaj+linYap+bes.cekildi*besW;
   var genel=pct(yapB,topB);
   document.getElementById('genbar').style.width=genel+'%';
   document.getElementById('genpct').textContent='%'+genel;
