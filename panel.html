@@ -184,4 +184,5 @@ async function yukle(){
   function trh(t){var p=String(t||'').split('-');return p.length===3?(p[2]+'.'+p[1]+'.'+p[0]):(t||'');}
   document.querySelector('#raporTbl tbody').innerHTML=rs.map(function(r){var is=r.montaj?'montaj':r.revize?'revize':r.kablo?'kablo':'-';return '<tr><td>'+trh(r.tarih)+'</td><td>'+(r.hedef||'')+'</td><td>'+is+'</td><td>'+(r.metraj?r.metraj+' m':'')+'</td></tr>';}).join('');
 }
-</script></body></html>
+</script><script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").then(function(r){setInterval(function(){r.update();},60000);}).catch(function(){});});}</script>
+</body></html>

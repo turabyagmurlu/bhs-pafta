@@ -172,6 +172,7 @@ body[data-rol="saha"] [onclick*="mahalEkle()"],body[data-rol="izleyici"] [onclic
   <div id="raporListePanel" style="display:none;position:absolute;right:14px;top:14px;width:300px;max-height:calc(100% - 28px);overflow-y:auto;background:rgba(21,34,46,.97);border-radius:10px;padding:14px;font-size:13px;z-index:70"></div>
 </div>
 <div id="buyuk" onclick="this.style.display='none'"><span class="kapa">✕</span><img id="buyukimg"></div>
+<script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").then(function(r){setInterval(function(){r.update();},60000);}).catch(function(){});});}</script>
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
