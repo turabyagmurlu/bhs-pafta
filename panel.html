@@ -108,16 +108,18 @@ async function yukle(){
   var _cap=panos.filter(function(p){return (p.kod||'').toLocaleUpperCase('tr').indexOf('ÇAP')>=0;}); var capMontaj=_cap.filter(function(p){return p.montaj;}).length, capCount=_cap.length;
   // linye
   var lin={cekildi:0,revize:0,birlesti:0,bekliyor:0,top:0}, linMetraj=0;
-  function linSay(o){ var L=o.linye||{}; Object.keys(L).forEach(function(k){ var s=L[k].durum||'bekliyor'; lin[s]=(lin[s]||0)+1; lin.top++; linMetraj+=pInt(L[k].mt); }); }
+  function linSay(o){ var L=o.linye||{}; Object.keys(L).forEach(function(k){ var s=L[k].durum||'bekliyor'; lin[s]=(lin[s]||0)+1; lin.top++; if(s==='cekildi'||s==='revize'||s==='birlesti')linMetraj+=pInt(L[k].mt); }); }
   panos.forEach(linSay); dbs.forEach(linSay);
   var linYap=lin.cekildi+lin.revize+lin.birlesti;
   // besleme/kumanda
   var bes={cekildi:0,bekliyor:0,top:0}, besMetraj=0;
-  function besSay(o){ var b=(o.besleme&&o.besleme.kablolar)||[]; b.forEach(function(k){ var s=k.durum||'bekliyor'; if(s==='cekildi'||s==='revize'||s==='birlesti'){bes.cekildi++;}else{bes.bekliyor++;} bes.top++; besMetraj+=pInt(k.mt); }); }
+  function besSay(o){ var b=(o.besleme&&o.besleme.kablolar)||[]; b.forEach(function(k){ var s=k.durum||'bekliyor'; if(s==='cekildi'||s==='revize'||s==='birlesti'){bes.cekildi++;}else{bes.bekliyor++;} bes.top++; if(s==='cekildi'||s==='revize'||s==='birlesti')besMetraj+=pInt(k.mt); }); }
   panos.forEach(besSay); dbs.forEach(besSay);
   var _dbCab=[]; dbs.forEach(function(o){ var c=_cabOran(o,'db'); if(c!=null)_dbCab.push(c); });
   var dbKabPct=_dbCab.length?Math.round(_dbCab.reduce(function(a,b){return a+b;},0)/_dbCab.length*100):0;
   var dbKabTam=_dbCab.filter(function(c){return c>=0.999;}).length;
+  var _ds=['cekildi','revize','birlesti'];
+  var dbBaslayan=dbs.filter(function(o){ var L=o.linye||{}; var lOk=Object.keys(L).some(function(k){return _ds.indexOf(L[k].durum||'bekliyor')>=0;}); var b=(o.besleme&&o.besleme.kablolar)||[]; var bOk=b.some(function(k){return _ds.indexOf(k.durum||'bekliyor')>=0;}); return lOk||bOk; }).length;
 
   // planli (beklenen) toplam linye + besleme (HATLAR/PANO_LINYE/BESLEME)
   var _DN2=['cekildi','revize','birlesti']; function _dn2(s){return _DN2.indexOf(s||'bekliyor')>=0;}
@@ -140,12 +142,12 @@ async function yukle(){
   var kpis=[
     ['Genel tamamlanma','%'+genel,'montaj+linye+besleme'],
     ['DB montaj','%'+pct(dbMontaj,dbs.length),dbMontaj+'/'+dbs.length],
-    ['DB kablo','%'+dbKabPct,dbKabTam+'/'+dbs.length],
-    ['Kablo imalatı olan DB',dbKablo+'/'+dbs.length,'en az 1 kablo çekilmiş'],
+    ['DB kablo','%'+dbKabPct,dbKabTam+'/'+dbs.length+' tam'],
+    ['Kablo imalatı olan DB',dbBaslayan+'/'+dbs.length,'linye veya besleme başlamış'],
     ['ÇAP montaj','%'+pct(capMontaj,capCount),capMontaj+'/'+capCount],
     ['Linye çekildi','%'+pct(linPlanYap,linPlanTop),linPlanYap+'/'+linPlanTop],
     ['Besleme/kumanda','%'+pct(besPlanYap,besPlanTop),besPlanYap+'/'+besPlanTop],
-    ['Toplam metraj',(linMetraj+besMetraj).toLocaleString('tr-TR')+' m','linye+besleme'],
+    ['Çekilen metraj',(linMetraj+besMetraj).toLocaleString('tr-TR')+' m','çekilen linye+besleme'],
     ['Rapor sayısı',String(raporlar.length),'işlenen kayıt']
   ];
   document.getElementById('kpis').innerHTML=kpis.map(k=>'<div class="kpi"><b>'+k[1]+'</b><span>'+k[0]+'</span><br><small>'+k[2]+'</small></div>').join('');
