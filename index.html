@@ -1196,6 +1196,12 @@ function _isiC(o,tip){
   var biten=durlar.filter(function(d){return d&&d!=='bekliyor';}).length;
   return m*0.3 + (biten/durlar.length)*0.7;
 }
+// Renk: hic baslamamis=kirmizi, baslamis=amber->sari, %100=yesil (kirmizi minimumda)
+function _isiRenk(c){
+  if(c>=0.999) return [152,65,45];
+  if(c<=0.02)  return [2,90,52];
+  return [Math.round(35+c*45),90,52];
+}
 function isiCiz(){
   var cv=document.getElementById('isiKat'); if(!cv) return;
   var ctx=cv.getContext('2d'); ctx.clearRect(0,0,cv.width,cv.height);
@@ -1205,7 +1211,7 @@ function isiCiz(){
   arr.sort(function(a,b){ return b.c-a.c; }); // en tamam ALTTA, en eksik USTTE
   arr.forEach(function(it){
     var x=it.o.x*cv.width, y=it.o.y*cv.height;
-    var base=(it.c>=0.999)?[152,65,45]:[Math.round(it.c*48),92,52]; // 100% yesil; altı kırmızı→sarı (asla yeşil değil)
+    var base=_isiRenk(it.c);
     function col(a){ return 'hsla('+base[0]+','+base[1]+'%,'+base[2]+'%,'+a+')'; }
     var g=ctx.createRadialGradient(x,y,0,x,y,R);
     g.addColorStop(0,col(0.62)); g.addColorStop(0.5,col(0.33)); g.addColorStop(1,col(0));
