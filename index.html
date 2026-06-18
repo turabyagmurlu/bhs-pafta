@@ -257,17 +257,16 @@ function barGuncelle(){
   document.getElementById('bm-dolu').style.width = yz(dm,dt)+'%';
   // DB KABLOLAMA = besleme/kumanda %60 + linye %40 (her DB kendi linye sayisina gore normalize)
   // besleme/kumanda kritik kalem oldugu icin agirlikli; "tek linye = tamam" yanilsamasi yok.
-  var _kW=0.6, _kDONE=['cekildi','revize','birlesti'];
-  function _kbiten(s){ return _kDONE.indexOf(s||'bekliyor')>=0; }
+  var _kW=0.6, _kOUT=['revize','birlesti']; function _kout(s){ return _kOUT.indexOf(s||'bekliyor')>=0; }
   function _dbKabOran(o){
     var bk=(o.besleme&&Array.isArray(o.besleme.kablolar))?o.besleme.kablolar:null;
     if(!bk){ var key=String(o.id).padStart(2,'0'); var bd=(typeof BESLEME!=='undefined')?BESLEME[key]:null; bk=bd?bd.kablolar.map(function(){return{durum:'bekliyor'};}):[]; }
-    var besTot=bk.length, besDone=0, i; for(i=0;i<bk.length;i++) if(_kbiten(bk[i].durum)) besDone++;
+    var besTot=0, besDone=0, i; for(i=0;i<bk.length;i++){ var _bs=bk[i].durum||'bekliyor'; if(_kout(_bs))continue; besTot++; if(_bs==='cekildi')besDone++; }
     var hatlar=[]; var hb=(typeof HATLAR!=='undefined')?HATLAR[String(o.id).padStart(2,'0')]:null; if(hb) hatlar=hb.hatlar.slice();
     var gizli=o.gizliLinye||[]; hatlar=hatlar.filter(function(h){return gizli.indexOf(h)<0;});
     (o.ekLinye||[]).forEach(function(h){ if(hatlar.indexOf(h)<0) hatlar.push(h); });
-    var linTot=hatlar.length, linDone=0;
-    hatlar.forEach(function(h){ var l=(o.linye&&o.linye[h])||{}; if(_kbiten(l.durum)) linDone++; });
+    var linTot=0, linDone=0;
+    hatlar.forEach(function(h){ var l=(o.linye&&o.linye[h])||{}; var _ls=l.durum||'bekliyor'; if(_kout(_ls))return; linTot++; if(_ls==='cekildi')linDone++; });
     var bes=besTot?besDone/besTot:null, lin=linTot?linDone/linTot:null;
     if(bes!=null&&lin!=null) return _kW*bes+(1-_kW)*lin;
     if(bes!=null) return bes;
@@ -294,7 +293,7 @@ function kbDurum(o, tip){
     const bd = (typeof BESLEME!=='undefined') ? BESLEME[key] : null;
     bk = bd ? bd.kablolar.map(()=>({durum:'bekliyor'})) : [];
   }
-  for(const k of bk) durlar.push(k.durum||'bekliyor');
+  for(const k of bk){ const s=k.durum||'bekliyor'; if(s==='revize'||s==='birlesti') continue; durlar.push(s); }
   // 2) Linye hatlari
   let hatlar = [];
   if(tip==='db'){
@@ -306,11 +305,11 @@ function kbDurum(o, tip){
   const gizli = o.gizliLinye||[];
   hatlar = hatlar.filter(h=>!gizli.includes(h));
   for(const h of (o.ekLinye||[])) if(!hatlar.includes(h)) hatlar.push(h);
-  for(const h of hatlar){ const l=(o.linye&&o.linye[h])||{}; durlar.push(l.durum||'bekliyor'); }
+  for(const h of hatlar){ const l=(o.linye&&o.linye[h])||{}; const s=l.durum||'bekliyor'; if(s==='revize'||s==='birlesti') continue; durlar.push(s); }
   // 3) Karar
   const toplam = durlar.length;
   if(!toplam) return null;
-  const biten = durlar.filter(d=>d && d!=='bekliyor').length;
+  const biten = durlar.filter(d=>d==='cekildi').length;
   if(biten===0) return 'yok';
   if(biten===toplam) return 'tamam';
   return 'devam';
@@ -361,7 +360,7 @@ function linyeDon(i, h){
   const cur = (o.linye[h]||{}).durum || 'bekliyor';
   const sira = {bekliyor:'cekildi', cekildi:'revize', revize:'birlesti', birlesti:'bekliyor'};
   o.linye[h] = {...(o.linye[h]||{mt:''}), durum: sira[cur]}; try{gunluk(_hedefAd()+' '+h+' '+sira[cur]);}catch(_g){}
-  o.kablo = Object.values(o.linye).some(l=>l.durum==='cekildi'||l.durum==='revize');
+  o.kablo = Object.values(o.linye).some(l=>l.durum==='cekildi');
   ciz(); ac('db', i);
 }
 function linyeMt(i, h, v){
@@ -395,7 +394,7 @@ function linyeSil(i, h){
   if(o.linye) delete o.linye[h];
   const hb = HATLAR[String(o.id).padStart(2,'0')];
   if(hb && hb.hatlar.includes(h)){ o.gizliLinye = o.gizliLinye||[]; if(!o.gizliLinye.includes(h)) o.gizliLinye.push(h); }
-  o.kablo = Object.values(o.linye||{}).some(l=>l.durum==='cekildi'||l.durum==='revize');
+  o.kablo = Object.values(o.linye||{}).some(l=>l.durum==='cekildi');
   kaydet(); ciz(); ac('db', i);
 }
 function nesne(){ return secili.tip==='db' ? data.dbs[secili.i] : data.panos[secili.i]; }
@@ -1203,13 +1202,13 @@ function _isiDurlar(o,tip){
   var durlar=[];
   var bk=(o.besleme&&Array.isArray(o.besleme.kablolar))?o.besleme.kablolar:null;
   if(!bk){ var key=tip==='db'?String(o.id).padStart(2,'0'):o.kod; var bd=(typeof BESLEME!=='undefined')?BESLEME[key]:null; bk=bd?bd.kablolar.map(function(){return{durum:'bekliyor'};}):[]; }
-  for(var i=0;i<bk.length;i++) durlar.push(bk[i].durum||'bekliyor');
+  for(var i=0;i<bk.length;i++){ var _s=bk[i].durum||'bekliyor'; if(_s==='revize'||_s==='birlesti')continue; durlar.push(_s); }
   var hatlar=[];
   if(tip==='db'){ var hb=(typeof HATLAR!=='undefined')?HATLAR[String(o.id).padStart(2,'0')]:null; if(hb) hatlar=hb.hatlar.slice(); }
   else { if(typeof PANO_LINYE!=='undefined'&&PANO_LINYE[o.kod]) hatlar=PANO_LINYE[o.kod].map(function(x){return x.l;}); }
   var gizli=o.gizliLinye||[]; hatlar=hatlar.filter(function(h){return gizli.indexOf(h)<0;});
   (o.ekLinye||[]).forEach(function(h){ if(hatlar.indexOf(h)<0) hatlar.push(h); });
-  hatlar.forEach(function(h){ var l=(o.linye&&o.linye[h])||{}; durlar.push(l.durum||'bekliyor'); });
+  hatlar.forEach(function(h){ var l=(o.linye&&o.linye[h])||{}; var _s=l.durum||'bekliyor'; if(_s==='revize'||_s==='birlesti')return; durlar.push(_s); });
   return durlar;
 }
 // Tamamlanma orani 0..1 : montaj %30 + kablolama %70. Yesil(=1) icin montaj VE tum kablolama bitmeli.
@@ -1217,7 +1216,7 @@ function _isiC(o,tip){
   var m=o.montaj?1:0;
   var durlar=_isiDurlar(o,tip);
   if(!durlar.length) return m;
-  var biten=durlar.filter(function(d){return d&&d!=='bekliyor';}).length;
+  var biten=durlar.filter(function(d){return d==='cekildi';}).length;
   return m*0.3 + (biten/durlar.length)*0.7;
 }
 // Renk: hic baslamamis=kirmizi, baslamis=amber->sari, %100=yesil (kirmizi minimumda)
