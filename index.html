@@ -396,7 +396,7 @@ function linyeSil(i, h){
   const hb = HATLAR[String(o.id).padStart(2,'0')];
   if(hb && hb.hatlar.includes(h)){ o.gizliLinye = o.gizliLinye||[]; if(!o.gizliLinye.includes(h)) o.gizliLinye.push(h); }
   o.kablo = Object.values(o.linye||{}).some(l=>l.durum==='cekildi'||l.durum==='revize');
-  ciz(); ac('db', i);
+  kaydet(); ciz(); ac('db', i);
 }
 function nesne(){ return secili.tip==='db' ? data.dbs[secili.i] : data.panos[secili.i]; }
 function fotoListesi(o){
