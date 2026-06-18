@@ -119,10 +119,19 @@ async function yukle(){
   var dbKabPct=_dbCab.length?Math.round(_dbCab.reduce(function(a,b){return a+b;},0)/_dbCab.length*100):0;
   var dbKabTam=_dbCab.filter(function(c){return c>=0.999;}).length;
 
+  // planli (beklenen) toplam linye + besleme (HATLAR/PANO_LINYE/BESLEME)
+  var _DN2=['cekildi','revize','birlesti']; function _dn2(s){return _DN2.indexOf(s||'bekliyor')>=0;}
+  function _beklLin(o,tip){ var h=[]; if(tip==='db'){var hb=(typeof HATLAR!=='undefined')?HATLAR[String(o.id).padStart(2,'0')]:null; if(hb)h=hb.hatlar.slice();} else { if(typeof PANO_LINYE!=='undefined'&&PANO_LINYE[o.kod])h=PANO_LINYE[o.kod].map(function(x){return x.l;}); } var g=o.gizliLinye||[]; h=h.filter(function(x){return g.indexOf(x)<0;}); (o.ekLinye||[]).forEach(function(x){if(h.indexOf(x)<0)h.push(x);}); return h; }
+  var linPlanTop=0,linPlanYap=0;
+  function _linPlan(o,tip){ _beklLin(o,tip).forEach(function(x){ linPlanTop++; var l=(o.linye&&o.linye[x])||{}; if(_dn2(l.durum))linPlanYap++; }); }
+  panos.forEach(function(o){_linPlan(o,'pano');}); dbs.forEach(function(o){_linPlan(o,'db');});
+  var besPlanTop=0,besPlanYap=0;
+  function _besPlan(o,tip){ var bk=(o.besleme&&Array.isArray(o.besleme.kablolar))?o.besleme.kablolar:null; if(!bk){var key=tip==='db'?String(o.id).padStart(2,'0'):o.kod; var bd=(typeof BESLEME!=='undefined')?BESLEME[key]:null; bk=bd?bd.kablolar.map(function(){return{durum:'bekliyor'};}):[];} bk.forEach(function(k){ besPlanTop++; if(_dn2(k.durum))besPlanYap++; }); }
+  panos.forEach(function(o){_besPlan(o,'pano');}); dbs.forEach(function(o){_besPlan(o,'db');});
   // ---- genel % (dengeli: montaj %35 + linye %40 + besleme/kumanda %25) ----
   var _montajR=(dbs.length+capCount)?(dbMontaj+capMontaj)/(dbs.length+capCount):0;
-  var _linR=lin.top?linYap/lin.top:0;
-  var _besR=bes.top?bes.cekildi/bes.top:0;
+  var _linR=linPlanTop?linPlanYap/linPlanTop:0;
+  var _besR=besPlanTop?besPlanYap/besPlanTop:0;
   var genel=Math.round((0.35*_montajR+0.40*_linR+0.25*_besR)*100);
   document.getElementById('genbar').style.width=genel+'%';
   document.getElementById('genpct').textContent='%'+genel;
@@ -134,8 +143,8 @@ async function yukle(){
     ['DB kablo','%'+dbKabPct,dbKabTam+'/'+dbs.length],
     ['Kablo imalatı olan DB',dbKablo+'/'+dbs.length,'en az 1 kablo çekilmiş'],
     ['ÇAP montaj','%'+pct(capMontaj,capCount),capMontaj+'/'+capCount],
-    ['Linye çekildi','%'+pct(linYap,lin.top),linYap+'/'+lin.top],
-    ['Besleme/kumanda','%'+pct(bes.cekildi,bes.top),bes.cekildi+'/'+bes.top],
+    ['Linye çekildi','%'+pct(linPlanYap,linPlanTop),linPlanYap+'/'+linPlanTop],
+    ['Besleme/kumanda','%'+pct(besPlanYap,besPlanTop),besPlanYap+'/'+besPlanTop],
     ['Toplam metraj',(linMetraj+besMetraj).toLocaleString('tr-TR')+' m','linye+besleme'],
     ['Rapor sayısı',String(raporlar.length),'işlenen kayıt']
   ];
