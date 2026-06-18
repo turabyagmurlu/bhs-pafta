@@ -252,7 +252,7 @@ function barGuncelle(){
   document.getElementById('bm-txt').textContent = `${dm}/${dt} — %${yz(dm,dt)}`;
   document.getElementById('bm-dolu').style.width = yz(dm,dt)+'%';
   let _besBonus=0;
-  data.dbs.forEach(d=>{ if(d.kablo) return; if(d.besleme&&d.besleme.kablolar&&d.besleme.kablolar.length){ const _t=d.besleme.kablolar.length, _y=d.besleme.kablolar.filter(k=>k.durum==='cekildi'||k.durum==='revize'||k.durum==='birlesti').length; _besBonus+=0.15*(_y/_t); } });
+  data.dbs.forEach(d=>{ if(d.kablo) return; if(d.besleme&&d.besleme.kablolar&&d.besleme.kablolar.length){ const _t=d.besleme.kablolar.length, _y=d.besleme.kablolar.filter(k=>k.durum==='cekildi'||k.durum==='revize'||k.durum==='birlesti').length; _besBonus+=0.40*(_y/_t); } });
   const _kPct = dt? Math.round((dk+_besBonus)/dt*100) : 0;
   document.getElementById('bk-txt').textContent = `${dk}/${dt} — %${_kPct}`;
   document.getElementById('bk-dolu').style.width = _kPct+'%';
