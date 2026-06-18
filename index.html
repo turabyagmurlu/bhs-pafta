@@ -374,7 +374,7 @@ function linyeAdDegis(i, h){
   const yeni = prompt(`Linye adını değiştir (proje no: ${h}).\nBoş bırakıp Tamam'a basarsan orijinal numaraya döner.`, mevcut);
   if(yeni === null) return;
   o.linye[h] = {...(o.linye[h]||{durum:'bekliyor', mt:''}), ad: yeni.trim() || h};
-  kaydet(); ciz(); ac('db', i);
+  kaydet(); ciz(); ac(secili.tip, i);
 }
 function linyeEkle(i){
   const o = nesne();
@@ -385,17 +385,17 @@ function linyeEkle(i){
   if(!o.ekLinye.includes(t)) o.ekLinye.push(t);
   o.linye = o.linye || {};
   o.linye[t] = o.linye[t] || {durum:'bekliyor', mt:''};
-  kaydet(); ciz(); ac('db', i);
+  kaydet(); ciz(); ac(secili.tip, i);
 }
 function linyeSil(i, h){
   if(!confirm(h+' linyesi listeden silinsin mi?')) return;
   const o = nesne();
   o.ekLinye = (o.ekLinye||[]).filter(x=>x!==h);
   if(o.linye) delete o.linye[h];
-  const hb = HATLAR[String(o.id).padStart(2,'0')];
-  if(hb && hb.hatlar.includes(h)){ o.gizliLinye = o.gizliLinye||[]; if(!o.gizliLinye.includes(h)) o.gizliLinye.push(h); }
+  var _planH = (secili.tip==='pano') ? ((typeof PANO_LINYE!=='undefined'&&PANO_LINYE[o.kod])?PANO_LINYE[o.kod].map(function(x){return x.l;}):[]) : ((HATLAR[String(o.id).padStart(2,'0')]||{}).hatlar||[]);
+  if(_planH.includes(h)){ o.gizliLinye = o.gizliLinye||[]; if(!o.gizliLinye.includes(h)) o.gizliLinye.push(h); }
   o.kablo = Object.values(o.linye||{}).some(l=>l.durum==='cekildi');
-  kaydet(); ciz(); ac('db', i);
+  kaydet(); ciz(); ac(secili.tip, i);
 }
 function nesne(){ return secili.tip==='db' ? data.dbs[secili.i] : data.panos[secili.i]; }
 function fotoListesi(o){
