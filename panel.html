@@ -118,15 +118,17 @@ async function yukle(){
   var dbKabPct=_dbCab.length?Math.round(_dbCab.reduce(function(a,b){return a+b;},0)/_dbCab.length*100):0;
   var dbKabTam=_dbCab.filter(function(c){return c>=0.999;}).length;
 
-  // ---- genel % (montaj %30 + kablolama %70, besleme agirlikli; DB+Pano ortalamasi) ----
-  var _allC=[]; dbs.forEach(function(o){_allC.push(_nodeC(o,'db'));}); panos.forEach(function(o){_allC.push(_nodeC(o,'pano'));});
-  var genel=_allC.length?Math.round(_allC.reduce(function(a,b){return a+b;},0)/_allC.length*100):0;
+  // ---- genel % (dengeli: montaj %35 + linye %40 + besleme/kumanda %25) ----
+  var _montajR=(dbs.length+panos.length)?(dbMontaj+panoMontaj)/(dbs.length+panos.length):0;
+  var _linR=lin.top?linYap/lin.top:0;
+  var _besR=bes.top?bes.cekildi/bes.top:0;
+  var genel=Math.round((0.35*_montajR+0.40*_linR+0.25*_besR)*100);
   document.getElementById('genbar').style.width=genel+'%';
   document.getElementById('genpct').textContent='%'+genel;
 
   // ---- KPI ----
   var kpis=[
-    ['Genel tamamlanma','%'+genel,'tüm birimler'],
+    ['Genel tamamlanma','%'+genel,'montaj+linye+besleme'],
     ['DB montaj','%'+pct(dbMontaj,dbs.length),dbMontaj+'/'+dbs.length],
     ['DB kablo','%'+dbKabPct,dbKabTam+'/'+dbs.length],
     ['Kablo imalatı olan DB',dbKablo+'/'+dbs.length,'en az 1 kablo çekilmiş'],

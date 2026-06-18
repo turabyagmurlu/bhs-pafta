@@ -31,6 +31,10 @@ header .sub{font-size:11px;color:var(--mut)}
 .mk .rv{position:absolute;top:-9px;right:-9px;background:var(--panel);color:var(--or);border:1.5px solid var(--or);border-radius:50%;width:14px;height:14px;font-size:9px;line-height:12px;text-align:center}
 .mk .fo{position:absolute;bottom:-9px;right:-9px;background:var(--panel);border:1.5px solid #4fc3f7;border-radius:50%;width:14px;height:14px;font-size:8px;line-height:12px;text-align:center}
 .mk.sel{outline:3px dashed #ffe96b;outline-offset:3px}
+.tamamSym{position:absolute;top:-20px;left:50%;transform:translateX(-50%);font-size:18px;line-height:1;pointer-events:none;z-index:6;animation:tamamP 1.6s infinite}
+.tamamSym.yildiz{color:#ffd60a;text-shadow:0 0 4px #ffd60a,0 0 9px #ffb300}
+.tamamSym.elmas{color:#2dd4bf;text-shadow:0 0 4px #2dd4bf,0 0 9px #14b8a6}
+@keyframes tamamP{0%,100%{opacity:.85;transform:translateX(-50%) scale(1)}50%{opacity:1;transform:translateX(-50%) scale(1.28)}}
 .mk.kb-tamam{box-shadow:0 0 0 2px #fff,0 0 0 5px #00e676}
 .mk.kb-devam{box-shadow:0 0 0 2px #fff,0 0 0 5px #ffb300}
 .mk.kb-yok{box-shadow:0 0 0 2px #fff,0 0 0 5px #ff1744}
@@ -320,6 +324,7 @@ function ciz(){
     el.textContent = d.id;
     if(d.revize){ const r=document.createElement('div'); r.className='rv'; r.textContent='R'; el.appendChild(r); }
     if((d.fotolar||[]).length){ const f=document.createElement('div'); f.className='fo'; f.textContent='📷'; el.appendChild(f); }
+    if(d.montaj && typeof kbDurum==='function' && kbDurum(d,'db')==='tamam'){ const _ty=document.createElement('div'); _ty.className='tamamSym yildiz'; _ty.textContent='★'; el.appendChild(_ty); }
     if(secili && secili.tip==='db' && secili.i===i) el.classList.add('sel');
     if(aktifFiltre==='montaj' && d.montaj) el.classList.add('soluk');
     if(aktifFiltre==='kablo' && d.kablo) el.classList.add('soluk');
@@ -334,6 +339,7 @@ function ciz(){
     el.style.left = (p.x*IW)+'px'; el.style.top = (p.y*IH)+'px';
     el.textContent = p.kod.replace(/-/g,'‑'); el.title = p.kod;
     if((p.fotolar||[]).length){ const f=document.createElement('div'); f.className='fo'; f.textContent='📷'; el.appendChild(f); }
+    if(p.montaj && (p.kod||'').toLocaleUpperCase('tr').includes('ÇAP') && typeof kbDurum==='function' && kbDurum(p,'pano')==='tamam'){ const _td=document.createElement('div'); _td.className='tamamSym elmas'; _td.textContent='◆'; el.appendChild(_td); }
     if(secili && secili.tip==='pano' && secili.i===i) el.classList.add('sel');
     if(aktifFiltre==='pano' && (p.montaj || !(p.kod||'').toLocaleUpperCase('tr').includes('ÇAP'))) el.classList.add('soluk');
     if(aktifFiltre==='montaj' || aktifFiltre==='kablo') el.classList.add('soluk');
