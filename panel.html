@@ -58,6 +58,7 @@ th{color:#7c93a5;font-weight:600} td{color:#dde}
   </div>
   <div class="card"><h3>Günlük imalat aktivitesi (rapor sayısı)</h3><div class="cwrap"><canvas id="cGun"></canvas></div></div>
   <div class="card"><h3>Mahal bazlı tamamlanma <span id="mahalOzet" style="font-weight:400;color:#86efac;font-size:12px"></span></h3><div id="mahalList"></div></div>
+  <div class="card"><h3>⭐ Tamamlanan DB ve ÇAP'lar <span style="font-weight:400;color:#86efac;font-size:12px">montaj + tüm kablolama bitti</span></h3><div id="tamamList">—</div></div>
   <div class="card"><h3>Son raporlar</h3><div style="max-height:300px;overflow:auto"><table id="raporTbl"><thead><tr><th>Tarih</th><th>Hedef</th><th>İş</th><th>Metraj</th></tr></thead><tbody></tbody></table></div></div>
   <div class="foot">BHS Hillside Bodrum Peyzaj · canlı veriden üretildi</div>
 </div>
@@ -151,6 +152,15 @@ async function yukle(){
     ['Rapor sayısı',String(raporlar.length),'işlenen kayıt']
   ];
   document.getElementById('kpis').innerHTML=kpis.map(k=>'<div class="kpi"><b>'+k[1]+'</b><span>'+k[0]+'</span><br><small>'+k[2]+'</small></div>').join('');
+  var tamDbList=dbs.filter(function(o){return o.montaj&&_cabOran(o,'db')>=0.999;}).map(function(o){return o.id;});
+  var tamCapList=panos.filter(function(p){return p.montaj&&(p.kod||'').toLocaleUpperCase('tr').indexOf('ÇAP')>=0&&_cabOran(p,'pano')>=0.999;}).map(function(p){return p.kod;});
+  (function(){var h='';
+   h+='<div style="font-size:12px;color:#9fb6c6;margin-bottom:4px">⭐ DB ('+tamDbList.length+'/'+dbs.length+')</div>';
+   h+= tamDbList.length? tamDbList.map(function(id){return '<span style="display:inline-block;margin:3px;padding:4px 9px;border-radius:8px;background:#322b12;border:1px solid #ffd60a;color:#ffd60a;font-size:12px;font-weight:700">DB '+id+'</span>';}).join('') : '<span style="color:#7d93a3;font-size:12px">— henüz yok</span>';
+   h+='<div style="font-size:12px;color:#9fb6c6;margin:10px 0 4px">💎 ÇAP ('+tamCapList.length+')</div>';
+   h+= tamCapList.length? tamCapList.map(function(k){return '<span style="display:inline-block;margin:3px;padding:4px 9px;border-radius:8px;background:#11302b;border:1px solid #2dd4bf;color:#2dd4bf;font-size:12px;font-weight:700">'+k+'</span>';}).join('') : '<span style="color:#7d93a3;font-size:12px">— henüz yok</span>';
+   var el=document.getElementById('tamamList'); if(el) el.innerHTML=h;
+  })();
 
   // ---- grafikler ----
   Chart.defaults.color='#9fb6c6'; Chart.defaults.borderColor='#1d3144';
