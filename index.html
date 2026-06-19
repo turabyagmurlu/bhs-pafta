@@ -1320,14 +1320,14 @@ async function yedeklerAc(){
       if(d.id.indexOf('yedek')!==0) return;
       var dt=d.data()||{}, c={db:0,pano:0,rapor:0,mahal:0};
       try{ var o=JSON.parse(dt.state||'{}'); c={db:(o.dbs||[]).length,pano:(o.panos||[]).length,rapor:(o.raporlar||[]).length,mahal:(o.mahaller||[]).length}; }catch(e){}
-      arr.push({id:d.id, tarih:dt.tarih||dt.olusturma||'', aciklama:dt.aciklama||dt.not||'', c:c, oto:(d.id.indexOf('yedek-geridonus-oncesi')===0||d.id.indexOf('yedek_islem')===0||d.id.indexOf('yedek_')===0)});
+      arr.push({id:d.id, tarih:(typeof dt.tarih==='string'?dt.tarih:''), aciklama:dt.aciklama||dt.not||'', c:c, oto:(d.id.indexOf('yedek-geridonus-oncesi')===0||d.id.indexOf('yedek_islem')===0||d.id.indexOf('yedek_')===0)});
     });
     arr.sort(function(a,b){ return a.id<b.id?1:-1; });
     var box=document.getElementById('yedekList');
     if(!arr.length){ box.innerHTML='<div style="opacity:.7">Henüz yedek yok.</div>'; return; }
     var yon=((document.body.getAttribute('data-rol')||''))==='yonetici';
     box.innerHTML=arr.map(function(y){
-      var tarihStr=y.tarih||y.id.replace('yedek-','').replace(/_/g,' ');
+      var tarihStr=y.tarih||y.id.replace(/^yedek[-_]/,'').replace(/_/g,' ');
       var et=_yedekEsc(tarihStr).replace(/'/g,'');
       var btn = yon
         ? '<button class="btn" style="background:#1f5e4a;padding:5px 11px;font-size:12px;margin-top:8px" onclick="_yedekGeri(\''+y.id+'\',\''+et+'\')">↩ Bu yedeğe dön</button>'
