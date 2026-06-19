@@ -48,6 +48,7 @@ th{color:#7c93a5;font-weight:600} td{color:#dde}
     <div class="gen"><div class="genbar"><div id="genbar"></div></div><b id="genpct" style="font-size:22px;color:#fff"></b></div>
   </div>
   <div class="kpis" id="kpis"></div>
+  <div class="card" id="anomCard" style="display:none;border:1px solid #ff6b6b;background:#241414"><h3 style="color:#ff8a8a">⚠ Anomaliler — kontrol gerekiyor</h3><div id="anomList"></div></div>
   <div class="row">
     <div class="card"><h3>Driver Box durumu</h3><div class="cwrap"><canvas id="cDb"></canvas></div></div>
     <div class="card"><h3>ÇAP/Pano durumu</h3><div class="cwrap"><canvas id="cPano"></canvas></div></div>
@@ -152,6 +153,17 @@ async function yukle(){
     ['Rapor sayısı',String(raporlar.length),'işlenen kayıt']
   ];
   document.getElementById('kpis').innerHTML=kpis.map(k=>'<div class="kpi"><b>'+k[1]+'</b><span>'+k[0]+'</span><br><small>'+k[2]+'</small></div>').join('');
+  try{
+    var _srSnap=await firebase.firestore().collection('sahaRaporlari').get();
+    var _rids=raporlar.map(function(r){return r.rid;}).filter(Boolean);
+    var _anom=[];
+    _srSnap.forEach(function(dd){ var x=dd.data(); var uyg=!!x.paftaUygulandi, ony=!!x.onayli; var kisi=x.kisi||x.ekleyen||'?';
+      if(uyg&&!ony) _anom.push('🟠 <b>'+kisi+'</b> raporu: paftaya uygulanmış ama <b>ONAYSIZ</b>');
+      else if(ony&&!uyg) _anom.push('🟡 <b>'+kisi+'</b> raporu: <b>onaylı ama paftaya uygulanmamış</b>');
+    });
+    var _ac=document.getElementById('anomCard'), _al=document.getElementById('anomList');
+    if(_al){ if(_anom.length){ _al.innerHTML=_anom.map(function(a){return '<div style="font-size:12px;margin:5px 0">'+a+'</div>';}).join(''); } else { _al.innerHTML='<div style="font-size:12px;color:#86efac">✓ Anomali yok — onaylı raporlar paftada, hepsi tutarlı.</div>'; } if(_ac) _ac.style.display=''; }
+  }catch(e){}
   var tamDbList=dbs.filter(function(o){return o.montaj&&_cabOran(o,'db')>=0.999;}).map(function(o){return o.id;});
   var tamCapList=panos.filter(function(p){return p.montaj&&(p.kod||'').toLocaleUpperCase('tr').indexOf('ÇAP')>=0&&_cabOran(p,'pano')>=0.999;}).map(function(p){return p.kod;});
   (function(){var h='';
