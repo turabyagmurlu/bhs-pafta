@@ -114,14 +114,15 @@ body[data-rol="saha"] [onclick*="mahalEkle()"],body[data-rol="izleyici"] [onclic
   <button class="btn" onclick="ekle('pano')">+ ÇAP/Pano ekle</button>
   <button class="btn" style="background:#3a2e6b" onclick="mahalAc()">🏘 Mahaller</button>
   <button class="btn" style="background:#5a3a26" onclick="eksikAc()">📋 Eksik Listesi</button>
-  <button class="btn" style="background:#1f4a5e" onclick="raporPaftaAc()">📥 Saha Raporları</button>
+  
   <button class="btn" style="background:#155e75" onclick="window.open('panel.html','_blank')">📊 İlerleme Panosu</button>
   <button class="btn" id="isiBtn" style="background:#7a3b2e" onclick="isiToggle()">🔥 Isı Haritası</button>
   <button class="btn" id="besSemaBtn" style="background:#1d5e54" onclick="besSemaAc()">🔌 Besleme Şeması</button>
   <button class="btn" id="yedeklerBtn" style="background:#5a4a26" onclick="yedeklerAc()">🗄 Yedekler</button>
   <span id="rolRozet" style="display:inline-block;padding:6px 12px;border-radius:8px;background:#10212e;border:1px solid #2a4258;font-size:12px;font-weight:700;color:#cfe3ea"></span>
   <button class="btn" style="background:#5a2626" onclick="cikis()">🚪 Çıkış</button>
-  <button class="btn" onclick="raporListeAc()">📋 Raporlar (<span id="rsay">0</span>)</button>
+  <span id="rsay" style="display:none">0</span>
+  <button class="btn" style="background:#1f4a5e" onclick="window.open('saha-raporlari.html','_blank')">📡 Rapor Sunucusu</button>
   <button class="btn" id="yedekBtn" onclick="disaAktar()">JSON dışa aktar</button>
   <button class="btn" onclick="jsonPaylas()">📤 Paylaş (WhatsApp…)</button>
   <button class="btn" onclick="iceAktarSec()">JSON içe aktar</button>
