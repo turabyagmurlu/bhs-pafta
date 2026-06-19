@@ -398,8 +398,17 @@ function linyeSil(i, h){
 }
 function nesne(){ return secili.tip==='db' ? data.dbs[secili.i] : data.panos[secili.i]; }
 function fotoListesi(o){
-  return (o.fotolar||[]).map((src,j)=>`
-    <div class="fth"><img src="${src}" onclick="buyut(${j})"><button class="fx" onclick="event.stopPropagation();fotoSil(${j})">✕</button></div>`).join('');
+  setTimeout(_fotoLazyYukle,30);
+  return (o.fotolar||[]).map(function(src,j){
+    var b64 = typeof src==='string' && src.slice(0,5)==='data:';
+    var s = b64 ? src : '';
+    var d = b64 ? '' : (' data-fotoid="'+src+'"');
+    return '<div class="fth"><img src="'+s+'"'+d+' onclick="buyut('+j+')" style="background:#0f1923;min-width:42px;min-height:42px"><button class="fx" onclick="event.stopPropagation();fotoSil('+j+')">✕</button></div>';
+  }).join('');
+}
+function _fotoLazyYukle(){
+  var imgs=document.querySelectorAll('img[data-fotoid]');
+  for(var k=0;k<imgs.length;k++){ (function(img){ var id=img.getAttribute('data-fotoid'); if(!id)return; img.removeAttribute('data-fotoid'); if(typeof fotoCoz==='function'){ fotoCoz(id).then(function(b){ if(b) img.src=b; }); } })(imgs[k]); }
 }
 function ac(tip,i){
   secili = {tip,i};
@@ -528,7 +537,10 @@ function kucult(file, maxPx, q){
 }
 function fotoSil(j){ if(!confirm('Fotoğraf silinsin mi?'))return; nesne().fotolar.splice(j,1); ac(secili.tip,secili.i); }
 function buyut(j){
-  document.getElementById('buyukimg').src = nesne().fotolar[j];
+  var src = nesne().fotolar[j];
+  if(typeof src==='string' && src.slice(0,5)!=='data:' && typeof fotoCoz==='function'){
+    fotoCoz(src).then(function(b){ document.getElementById('buyukimg').src = b||src; });
+  } else { document.getElementById('buyukimg').src = src; }
   document.getElementById('buyuk').style.display = 'flex';
 }
 function kilitToggle(){
@@ -602,12 +614,14 @@ window.addEventListener('pointermove', e=>{
 const ptemiz = e=>{ ptrs.delete(e.pointerId); if(!ptrs.size) vp.style.cursor='grab'; };
 window.addEventListener('pointerup', ptemiz);
 window.addEventListener('pointercancel', ptemiz);
-function disaAktar(){
+async function disaAktar(){
   kirli = false;
   const b = document.getElementById('yedekBtn');
   if(b){ b.style.background = ''; b.textContent = 'JSON dışa aktar'; }
+  var d = JSON.parse(JSON.stringify(data));
+  if(typeof fotoCoz==='function'){ var arrs=[d.dbs,d.panos,d.raporlar]; for(var ai=0;ai<arrs.length;ai++){ var arr=arrs[ai]; if(!arr)continue; for(var oi=0;oi<arr.length;oi++){ var o=arr[oi]; if(!o.fotolar)continue; for(var fk=0;fk<o.fotolar.length;fk++){ var ss=o.fotolar[fk]; if(typeof ss==='string'&&ss.slice(0,5)!=='data:'){ var bb=await fotoCoz(ss); if(bb)o.fotolar[fk]=bb; } } } } }
   const a=document.createElement('a');
-  a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,1)],{type:'application/json'}));
+  a.href=URL.createObjectURL(new Blob([JSON.stringify(d,null,1)],{type:'application/json'}));
   a.download='bhs_pafta_durum.json'; a.click();
 }
 function bugunStr(){ return new Date().toLocaleDateString('tr-TR'); }
@@ -1601,6 +1615,8 @@ rsayGuncelle();
   const FOTOLAR = fdb.collection('fotolar');
   const istemci = Math.random().toString(36).slice(2) + '-' + Date.now();
   const fotoCache = {};
+  // LAZY: hash -> base64 cozucu (tiklayinca/acinca yuklenir)
+  window.fotoCoz = async function(id){ if(!id) return null; if(typeof id!=='string') return null; if(id.slice(0,5)==='data:') return id; if(fotoCache[id]) return fotoCache[id]; try{ const ds=await FOTOLAR.doc(id).get(); if(ds.exists){ const im=ds.data().img; fotoCache[id]=im; return im; } }catch(e){} return null; };
   const yuklenenFoto = new Set();
   let sonYazma = 0;
   let uygulaniyorRemote = false;
@@ -1653,6 +1669,7 @@ rsayGuncelle();
       const ids = [];
       for(const s of (o.fotolar||[])){
         if(typeof s!=='string' || !s) continue;
+        if(s.slice(0,5)!=='data:'){ ids.push(s); continue; }  // zaten hash (lazy), oldugu gibi birak
         const id = await sha(s);
         fmap[id] = s; fotoCache[id] = s; ids.push(id);
       }
@@ -1707,9 +1724,9 @@ rsayGuncelle();
       o.fotolar = arr; return o;
     }
     const yeni = { dbs:[], panos:[], raporlar:[], mahaller: ((hafif.mahaller&&hafif.mahaller.length)?hafif.mahaller:(data.mahaller||[])) };
-    for(const o of (hafif.dbs||[]))      yeni.dbs.push(await geri(Object.assign({}, o)));
-    for(const o of (hafif.panos||[]))    yeni.panos.push(await geri(Object.assign({}, o)));
-    for(const o of (hafif.raporlar||[])) yeni.raporlar.push(await geri(Object.assign({}, o)));
+    for(const o of (hafif.dbs||[]))      yeni.dbs.push(Object.assign({}, o));
+    for(const o of (hafif.panos||[]))    yeni.panos.push(Object.assign({}, o));
+    for(const o of (hafif.raporlar||[])) yeni.raporlar.push(Object.assign({}, o));
     uygulaniyorRemote = true;
     data = yeni; data.raporlar = data.raporlar || []; data.mahaller = data.mahaller || [];
     try{ if(typeof anlikGoruntu==='function'){ sonGoruntu = anlikGoruntu(); gecmis.length=0; gecmisBekleyen=false; if(typeof guncelleGeriBtn==='function') guncelleGeriBtn(); } }catch(e){}
