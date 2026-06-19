@@ -118,6 +118,7 @@ body[data-rol="saha"] [onclick*="mahalEkle()"],body[data-rol="izleyici"] [onclic
   <button class="btn" style="background:#1f4a5e" onclick="raporPaftaAc()">📥 Saha Raporları</button>
   <button class="btn" style="background:#155e75" onclick="window.open('panel.html','_blank')">📊 İlerleme Panosu</button>
   <button class="btn" id="isiBtn" style="background:#7a3b2e" onclick="isiToggle()">🔥 Isı Haritası</button>
+  <button class="btn" id="besSemaBtn" style="background:#1d5e54" onclick="besSemaAc()">🔌 Besleme Şeması</button>
   <span id="rolRozet" style="display:inline-block;padding:6px 12px;border-radius:8px;background:#10212e;border:1px solid #2a4258;font-size:12px;font-weight:700;color:#cfe3ea"></span>
   <button class="btn" style="background:#5a2626" onclick="cikis()">🚪 Çıkış</button>
   <button class="btn" onclick="raporListeAc()">📋 Raporlar (<span id="rsay">0</span>)</button>
@@ -158,7 +159,7 @@ body[data-rol="saha"] [onclick*="mahalEkle()"],body[data-rol="izleyici"] [onclic
   </div>
   <button class="btn" id="lejantBtn" onclick="document.getElementById('lejant').classList.toggle('acik')">Lejant</button>
   <button class="btn" id="kaydetBtn" onclick="elleKaydet()">💾 Kaydet</button>
-  <div id="toast"></div>
+  <div id="besSemaPanel" style="display:none;position:absolute;right:14px;top:14px;width:380px;max-height:calc(100% - 28px);overflow-y:auto;background:rgba(21,34,46,.97);border-radius:10px;padding:14px;font-size:13px;z-index:80"></div><div id="toast"></div>
   <div id="ipucu">Tekerlek: yakınlaştır • Boş alan: kaydır • Markör: tıkla = düzenle + fotoğraf, sürükle = taşı</div>
   <div id="panel"></div>
   <div id="raporPanel" style="display:none;position:absolute;right:14px;top:14px;width:290px;max-height:calc(100% - 28px);overflow-y:auto;background:rgba(21,34,46,.97);border-radius:10px;padding:14px;font-size:13px;z-index:70"></div>
@@ -1246,6 +1247,49 @@ function isiToggle(){
   var b=document.getElementById('isiBtn'); if(b) b.style.filter=show?'brightness(1.35)':'';
   var lj=document.getElementById('isiLejant'); if(lj) lj.style.display=show?'block':'none';
   if(show) isiCiz();
+}
+function _bsBesOf(o,tip){
+  var bk=(o.besleme&&Array.isArray(o.besleme.kablolar))?o.besleme.kablolar:null;
+  var kaynak=(o.besleme&&o.besleme.kaynak)||'';
+  if(!bk){ var key=tip==='db'?String(o.id).padStart(2,'0'):o.kod; var bd=(typeof BESLEME!=='undefined')?BESLEME[key]:null; bk=bd?bd.kablolar.map(function(k){return{tip:k.tip,adet:k.adet,durum:'bekliyor'};}):[]; kaynak=bd?bd.kaynak:''; }
+  return {kaynak:kaynak, kablolar:bk};
+}
+function besSemaAc(){
+  var p=document.getElementById('besSemaPanel'); if(!p) return;
+  if(p.style.display==='block'){ p.style.display='none'; return; }
+  var DONE=['cekildi','revize','birlesti'];
+  var gruplar={};
+  function ekle(o,tip){ var b=_bsBesOf(o,tip); if(!b.kablolar.length) return; var k=b.kaynak||'(tanımsız kaynak)'; (gruplar[k]=gruplar[k]||[]).push({ad:tip==='db'?('DB '+o.id):o.kod, kablolar:b.kablolar}); }
+  data.panos.forEach(function(o){ekle(o,'pano');}); data.dbs.forEach(function(o){ekle(o,'db');});
+  var keys=Object.keys(gruplar).sort(function(a,b){ var ca=/çap/i.test(a)?0:1, cb=/çap/i.test(b)?0:1; return ca-cb || a.localeCompare(b,'tr'); });
+  var h='<h3 style="font-size:14px;margin-bottom:6px">🔌 Besleme Şeması <span style="font-weight:400;color:#7d93a3;font-size:11px">(kaynak → beslediği düğümler)</span></h3>';
+  h+='<input id="besSemaAra" placeholder="ara: DB / pano / kaynak..." oninput="besSemaFiltre(this.value)" style="width:100%;box-sizing:border-box;background:#0f1923;color:#fff;border:1px solid #33567a;border-radius:6px;padding:6px 9px;font-size:12px;margin-bottom:8px">';
+  h+='<div style="font-size:11px;color:#7d93a3;margin-bottom:8px">✓ çekildi · ⏳ bekliyor — '+keys.length+' kaynak</div>';
+  h+='<div id="besSemaIc">';
+  keys.forEach(function(k){
+    var dests=gruplar[k];
+    var tamSay=0, kabTop=0, kabCek=0;
+    dests.forEach(function(d){ var hep=true; d.kablolar.forEach(function(c){ kabTop++; if(DONE.indexOf(c.durum||'bekliyor')>=0)kabCek++; else hep=false; }); if(hep)tamSay++; });
+    h+='<div class="bsGrup" data-k="'+k.toLocaleLowerCase('tr')+'" style="margin-bottom:10px;border-left:3px solid #4fc3f7;padding-left:8px">';
+    h+='<div style="font-weight:700;color:#4fc3f7;font-size:12px">'+k+' <span style="color:#7d93a3;font-weight:400">→ '+dests.length+' düğüm · '+kabCek+'/'+kabTop+' kablo çekildi</span></div>';
+    dests.forEach(function(d){
+      var kabStr=d.kablolar.map(function(c){ var done=DONE.indexOf(c.durum||'bekliyor')>=0; return '<span style="color:'+(done?'#2dd4bf':'#ff9800')+'">'+((c.adet&&c.adet>1)?c.adet+'× ':'')+c.tip+' '+(done?'✓':'⏳')+'</span>'; }).join(', ');
+      h+='<div class="bsRow" data-ara="'+d.ad.toLocaleLowerCase('tr')+'" style="font-size:11px;margin:2px 0 2px 6px"><b>'+d.ad+'</b>: '+kabStr+'</div>';
+    });
+    h+='</div>';
+  });
+  h+='</div>';
+  h+='<button class="btn" style="width:100%;margin-top:8px" onclick="document.getElementById(\'besSemaPanel\').style.display=\'none\'">Kapat</button>';
+  p.innerHTML=h; p.style.display='block';
+}
+function besSemaFiltre(q){
+  q=(q||'').toLocaleLowerCase('tr');
+  var grps=document.querySelectorAll('#besSemaIc .bsGrup');
+  for(var i=0;i<grps.length;i++){ var g=grps[i]; var kMatch=g.getAttribute('data-k').indexOf(q)>=0; var any=false;
+    var rows=g.querySelectorAll('.bsRow');
+    for(var j=0;j<rows.length;j++){ var m=(!q)||kMatch||(rows[j].getAttribute('data-ara').indexOf(q)>=0); rows[j].style.display=m?'':'none'; if(m)any=true; }
+    g.style.display=((!q)||kMatch||any)?'':'none';
+  }
 }
 function wpAc(){
   kapat(); document.getElementById('raporPanel').style.display='none';
