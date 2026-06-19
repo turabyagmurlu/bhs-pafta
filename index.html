@@ -1616,7 +1616,7 @@ rsayGuncelle();
   const istemci = Math.random().toString(36).slice(2) + '-' + Date.now();
   const fotoCache = {};
   // LAZY: hash -> base64 cozucu (tiklayinca/acinca yuklenir)
-  window.fotoCoz = async function(id){ if(!id) return null; if(typeof id!=='string') return null; if(id.slice(0,5)==='data:') return id; if(fotoCache[id]) return fotoCache[id]; try{ const ds=await FOTOLAR.doc(id).get(); if(ds.exists){ const im=ds.data().img; fotoCache[id]=im; return im; } }catch(e){} return null; };
+  window.fotoCoz = async function(id){ if(!id||typeof id!=='string') return null; if(id.slice(0,5)==='data:') return id; if(fotoCache[id]) return fotoCache[id]; var cur=id; for(var i=0;i<5;i++){ try{ var ds=await FOTOLAR.doc(cur).get(); if(!ds.exists) return null; var im=ds.data().img; if(typeof im==='string' && (im.slice(0,5)==='data:'||im.length>200)){ fotoCache[id]=im; return im; } if(typeof im!=='string'||!im) return null; cur=im; }catch(e){ return null; } } return null; };
   const yuklenenFoto = new Set();
   let sonYazma = 0;
   let uygulaniyorRemote = false;
