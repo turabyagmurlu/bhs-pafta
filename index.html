@@ -118,6 +118,7 @@ body[data-rol="saha"] [onclick*="mahalEkle()"],body[data-rol="izleyici"] [onclic
   <button class="btn" style="background:#155e75" onclick="window.open('panel.html','_blank')">📊 İlerleme Panosu</button>
   <button class="btn" id="isiBtn" style="background:#7a3b2e" onclick="isiToggle()">🔥 Isı Haritası</button>
   <button class="btn" id="besSemaBtn" style="background:#1d5e54" onclick="besSemaAc()">🔌 Besleme Şeması</button>
+  <button class="btn" id="yedeklerBtn" style="background:#5a4a26" onclick="yedeklerAc()">🗄 Yedekler</button>
   <span id="rolRozet" style="display:inline-block;padding:6px 12px;border-radius:8px;background:#10212e;border:1px solid #2a4258;font-size:12px;font-weight:700;color:#cfe3ea"></span>
   <button class="btn" style="background:#5a2626" onclick="cikis()">🚪 Çıkış</button>
   <button class="btn" onclick="raporListeAc()">📋 Raporlar (<span id="rsay">0</span>)</button>
@@ -158,7 +159,7 @@ body[data-rol="saha"] [onclick*="mahalEkle()"],body[data-rol="izleyici"] [onclic
   </div>
   <button class="btn" id="lejantBtn" onclick="document.getElementById('lejant').classList.toggle('acik')">Lejant</button>
   <button class="btn" id="kaydetBtn" onclick="elleKaydet()">💾 Kaydet</button>
-  <div id="besSemaPanel" style="display:none;position:absolute;right:14px;top:14px;width:380px;max-height:calc(100% - 28px);overflow-y:auto;background:rgba(21,34,46,.97);border-radius:10px;padding:14px;font-size:13px;z-index:80"></div><div id="toast"></div>
+  <div id="besSemaPanel" style="display:none;position:absolute;right:14px;top:14px;width:380px;max-height:calc(100% - 28px);overflow-y:auto;background:rgba(21,34,46,.97);border-radius:10px;padding:14px;font-size:13px;z-index:80"></div><div id="yedekPanel" style="display:none;position:absolute;right:14px;top:14px;width:360px;max-height:calc(100% - 28px);overflow-y:auto;background:rgba(21,34,46,.97);border-radius:10px;padding:14px;font-size:13px;z-index:81"></div><div id="toast"></div>
   <div id="ipucu">Tekerlek: yakınlaştır • Boş alan: kaydır • Markör: tıkla = düzenle + fotoğraf, sürükle = taşı</div>
   <div id="panel"></div>
   <div id="raporPanel" style="display:none;position:absolute;right:14px;top:14px;width:290px;max-height:calc(100% - 28px);overflow-y:auto;background:rgba(21,34,46,.97);border-radius:10px;padding:14px;font-size:13px;z-index:70"></div>
@@ -1303,6 +1304,61 @@ function besSemaFiltre(q){
     for(var j=0;j<rows.length;j++){ var m=(!q)||kMatch||(rows[j].getAttribute('data-ara').indexOf(q)>=0); rows[j].style.display=m?'':'none'; if(m)any=true; }
     g.style.display=((!q)||kMatch||any)?'':'none';
   }
+}
+function yedekKapat(){ var p=document.getElementById('yedekPanel'); if(p) p.style.display='none'; }
+function _yedekEsc(s){ return (s==null?'':String(s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+async function yedeklerAc(){
+  var panel=document.getElementById('yedekPanel');
+  if(!panel) return;
+  panel.style.display='block';
+  panel.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><b style="font-size:15px">🗄 Yedekler</b><button class="btn" style="background:#444;padding:4px 10px" onclick="yedekKapat()">✕ Kapat</button></div><div style="font-size:11px;color:#8aa0b0;margin-bottom:9px">Buluttaki tüm yedekler. Bir soruna karşı istediğin yedeğe dönebilirsin.</div><div id="yedekList" style="opacity:.7">Yükleniyor…</div>';
+  try{
+    if(typeof firebase==='undefined'||!firebase.firestore){ document.getElementById('yedekList').innerHTML='<div style="color:#ff8a8a">Bulut bağlı değil.</div>'; return; }
+    var snap=await firebase.firestore().collection('pafta').get();
+    var arr=[];
+    snap.forEach(function(d){
+      if(d.id.indexOf('yedek')!==0) return;
+      var dt=d.data()||{}, c={db:0,pano:0,rapor:0,mahal:0};
+      try{ var o=JSON.parse(dt.state||'{}'); c={db:(o.dbs||[]).length,pano:(o.panos||[]).length,rapor:(o.raporlar||[]).length,mahal:(o.mahaller||[]).length}; }catch(e){}
+      arr.push({id:d.id, tarih:dt.tarih||dt.olusturma||'', aciklama:dt.aciklama||dt.not||'', c:c, oto:(d.id.indexOf('yedek-geridonus-oncesi')===0||d.id.indexOf('yedek_islem')===0||d.id.indexOf('yedek_')===0)});
+    });
+    arr.sort(function(a,b){ return a.id<b.id?1:-1; });
+    var box=document.getElementById('yedekList');
+    if(!arr.length){ box.innerHTML='<div style="opacity:.7">Henüz yedek yok.</div>'; return; }
+    var yon=((document.body.getAttribute('data-rol')||''))==='yonetici';
+    box.innerHTML=arr.map(function(y){
+      var tarihStr=y.tarih||y.id.replace('yedek-','').replace(/_/g,' ');
+      var et=_yedekEsc(tarihStr).replace(/'/g,'');
+      var btn = yon
+        ? '<button class="btn" style="background:#1f5e4a;padding:5px 11px;font-size:12px;margin-top:8px" onclick="_yedekGeri(\''+y.id+'\',\''+et+'\')">↩ Bu yedeğe dön</button>'
+        : '<div style="font-size:11px;color:#7c93a3;margin-top:7px">Geri yükleme yalnız yönetici</div>';
+      return '<div style="background:#10212e;border:1px solid #2a4258;border-left:4px solid '+(y.oto?'#8a6d3b':'#2dd4bf')+';border-radius:8px;padding:10px;margin-bottom:9px">'
+        +'<div style="font-weight:700;font-size:13px;color:#cfe3ea">'+(y.oto?'🔁 ':'📦 ')+_yedekEsc(tarihStr)+'</div>'
+        +'<div style="font-size:11px;color:#9fb3c1;margin:3px 0">'+y.c.db+' DB · '+y.c.pano+' pano · '+y.c.rapor+' rapor · '+y.c.mahal+' mahal</div>'
+        +(y.aciklama?'<div style="font-size:12px;color:#bcd3e0;margin-top:4px">'+_yedekEsc(y.aciklama)+'</div>':'')
+        +btn
+        +'</div>';
+    }).join('');
+  }catch(e){ var b=document.getElementById('yedekList'); if(b) b.innerHTML='<div style="color:#ff8a8a">Hata: '+_yedekEsc(e&&e.message||e)+'</div>'; }
+}
+async function _yedekGeri(id, etiket){
+  if(((document.body.getAttribute('data-rol')||''))!=='yonetici'){ alert('Bu işlem yalnız yönetici tarafından yapılabilir.'); return; }
+  if(!confirm('DİKKAT\n\nMevcut pafta durumunun yerine şu yedek yüklenecek:\n"'+etiket+'"\n\nİşlemden önce mevcut durum otomatik yedeklenecek.\nDevam edilsin mi?')) return;
+  try{
+    var fdb=firebase.firestore();
+    var cur=await fdb.collection('pafta').doc('bhs').get();
+    if(cur.exists){
+      var d=new Date(), p=function(n){return (n<10?'0':'')+n;};
+      var ts=d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'_'+p(d.getHours())+'-'+p(d.getMinutes());
+      var tarih=d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes());
+      try{ await fdb.collection('pafta').doc('yedek-geridonus-oncesi-'+ts).set({state:cur.data().state, tarih:tarih, aciklama:'"'+etiket+'" yedeğine dönmeden önce otomatik alındı'}); }catch(eb){}
+    }
+    var y=await fdb.collection('pafta').doc(id).get();
+    if(!y.exists){ alert('Yedek bulunamadı.'); return; }
+    await fdb.collection('pafta').doc('bhs').set({state:y.data().state, updatedAt:Date.now(), yazan:'geri-yukleme-'+Date.now()});
+    try{ toast('✓ "'+etiket+'" yedeğine dönülüyor… (birkaç saniye)'); }catch(e){}
+    yedekKapat();
+  }catch(e){ alert('Geri yükleme hatası: '+(e&&e.message||e)); }
 }
 function wpAc(){
   kapat(); document.getElementById('raporPanel').style.display='none';
