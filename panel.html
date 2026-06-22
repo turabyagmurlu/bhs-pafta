@@ -157,12 +157,15 @@ async function yukle(){
     var _srSnap=await firebase.firestore().collection('sahaRaporlari').get();
     var _rids=raporlar.map(function(r){return r.rid;}).filter(Boolean);
     var _anom=[];
-    _srSnap.forEach(function(dd){ var x=dd.data(); var uyg=!!x.paftaUygulandi, ony=!!x.onayli; var kisi=x.kisi||x.ekleyen||'?';
-      if(uyg&&!ony) _anom.push('🟠 <b>'+kisi+'</b> raporu: paftaya uygulanmış ama <b>ONAYSIZ</b>');
-      else if(ony&&!uyg) _anom.push('🟡 <b>'+kisi+'</b> raporu: <b>onaylı ama paftaya uygulanmamış</b>');
+    // Anomali = SADECE paftaya GERCEKTEN veri islenmis ama tutarsiz olanlar.
+    // Onaysiz/cozumlenmemis rapor TEK BASINA anomali DEGIL (arsiv icin tutulabilir).
+    _srSnap.forEach(function(dd){ var x=dd.data(); var ony=!!x.onayli; var kisi=x.kisi||x.ekleyen||'?';
+      var hasData = !!x.rid || (x.paftaVeri && x.paftaVeri.length>0) || !!x.paftaYedek;
+      if(hasData && !ony) _anom.push('🟠 <b>'+kisi+'</b> raporu: paftaya <b>veri işlenmiş ama onaysız</b> — kontrol et');
+      else if(x.rid && _rids.indexOf(x.rid)<0) _anom.push('🔴 <b>'+kisi+'</b> raporu uygulanmış görünüyor ama paftada kayıtları yok — <b>veri kaybı?</b>');
     });
     var _ac=document.getElementById('anomCard'), _al=document.getElementById('anomList');
-    if(_al){ if(_anom.length){ _al.innerHTML=_anom.map(function(a){return '<div style="font-size:12px;margin:5px 0">'+a+'</div>';}).join(''); } else { _al.innerHTML='<div style="font-size:12px;color:#86efac">✓ Anomali yok — onaylı raporlar paftada, hepsi tutarlı.</div>'; } if(_ac) _ac.style.display=''; }
+    if(_ac&&_al){ if(_anom.length){ _al.innerHTML=_anom.map(function(a){return '<div style="font-size:12px;margin:5px 0">'+a+'</div>';}).join(''); _ac.style.display=''; } else { _ac.style.display='none'; } }
   }catch(e){}
   var tamDbList=dbs.filter(function(o){return o.montaj&&_cabOran(o,'db')>=0.999;}).map(function(o){return o.id;});
   var tamCapList=panos.filter(function(p){return p.montaj&&(p.kod||'').toLocaleUpperCase('tr').indexOf('ÇAP')>=0&&_cabOran(p,'pano')>=0.999;}).map(function(p){return p.kod;});
