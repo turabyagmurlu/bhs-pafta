@@ -1361,7 +1361,7 @@ async function _yedekGeri(id, etiket){
     yedekKapat();
   }catch(e){ alert('Geri yükleme hatası: '+(e&&e.message||e)); }
 }
-function wpAc(){
+function wpAc(){ try{alert('Manuel rapor girisi kapali.\nRaporlar yalniz Rapor Sunucusu uzerinden islenir.');}catch(e){} return;
   kapat(); document.getElementById('raporPanel').style.display='none';
   document.getElementById('raporListePanel').style.display='none';
   const p = document.getElementById('wpPanel');
@@ -1539,7 +1539,7 @@ data.mahaller = data.mahaller || [];
 let raporFotolar = [];
 function bugun(){ const d=new Date(); return d.toISOString().slice(0,10); }
 function rsayGuncelle(){ const e=document.getElementById('rsay'); if(e) e.textContent = data.raporlar.length; }
-function raporAc(){
+function raporAc(){ try{alert('Manuel rapor girisi kapali.\nRaporlar yalniz Rapor Sunucusu uzerinden islenir.');}catch(e){} return;
   kapat(); document.getElementById('raporListePanel').style.display='none';
   raporFotolar = [];
   const p = document.getElementById('raporPanel');
@@ -1581,7 +1581,7 @@ function raporAc(){
   document.getElementById('rfotokam').onchange = fy;
   document.getElementById('rfotosec').onchange = fy;
 }
-function raporKaydet(){
+function raporKaydet(){ try{alert('Manuel rapor girisi kapali.\nRaporlar yalniz Rapor Sunucusu uzerinden islenir.');}catch(e){} return;
   const hedef = document.getElementById('rHedef').value;
   const [tip, ix] = hedef.split(':');
   const i = parseInt(ix);
