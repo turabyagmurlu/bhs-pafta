@@ -29,6 +29,7 @@ header .sub{font-size:11px;color:var(--mut)}
 .mk.pano{width:24px;height:24px;font-size:7px;border:2px solid #000;text-align:center;line-height:1}
 .mk.pano.m1{background:var(--green)} .mk.pano.m0{background:#cfd8dc;color:#222}
 .mk.pano.hk{background:#7c3aed !important;color:#fff !important;border-color:#4c1d95 !important}
+.mk.pano.hp{background:#ea7317 !important;color:#fff !important;border-color:#9a4a00 !important}
 .mk .rv{position:absolute;top:-9px;right:-9px;background:var(--panel);color:var(--or);border:1.5px solid var(--or);border-radius:50%;width:14px;height:14px;font-size:9px;line-height:12px;text-align:center}
 .mk .fo{position:absolute;bottom:-9px;right:-9px;background:var(--panel);border:1.5px solid #4fc3f7;border-radius:50%;width:14px;height:14px;font-size:8px;line-height:12px;text-align:center}
 .mk.sel{outline:3px dashed #ffe96b;outline-offset:3px}
@@ -334,7 +335,7 @@ function ciz(){
   });
   data.panos.forEach((p,i)=>{
     const el = document.createElement('div');
-    el.className = `mk pano ${p.montaj?'m1':'m0'} ${(p.kod||'').toLocaleUpperCase('tr').includes('HK')?'hk':''}`;
+    el.className = `mk pano ${p.montaj?'m1':'m0'} ${(p.kod||'').toLocaleUpperCase('tr').includes('HK')?'hk':''} ${(p.kod||'').toLocaleUpperCase('tr').includes('HP')?'hp':''}`;
     { if((p.kod||'').toLocaleUpperCase('tr').includes('ÇAP')){ const _kp=kbDurum(p,'pano'); if(_kp) el.classList.add('kb-'+_kp); } }
     el.style.left = (p.x*IW)+'px'; el.style.top = (p.y*IH)+'px';
     el.textContent = p.kod.replace(/-/g,'‑'); el.title = p.kod;
