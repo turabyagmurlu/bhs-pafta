@@ -1679,6 +1679,50 @@ rsayGuncelle();
   let uygulaniyorRemote = false;
   const SINIR = 950000;
 
+  /* ====== PANO CANLI YAYIN (şifreli) ======
+     Her kayıtta pano özetini hesaplar, RSA-OAEP+AES-GCM ile şifreler ve
+     public/takip dokümanına yazar. Public anahtar gömülü (gizli değil);
+     içeriği yalnız panodaki private anahtar çözer. Adresi/kaynağı bilen
+     biri yalnız şifreli metin görür. */
+  const PANO_PUBJWK = {"key_ops":["encrypt"],"ext":true,"alg":"RSA-OAEP-256","kty":"RSA","n":"0FqaYMJPqfdnWLGQIPKFzggvvcY_rwO-iGAl_QXw2WIDPrxNx1lqTIR9L8xbTHaZpcWRTgdBhgKYfQ5B83i3Vs2GIcndo56zpodNjHwgb_3ZhvkIl04n5Egn5YhPFwWZE9cUeWxAykd1MnyME3FsClTB2JS2VS9m1rw0AYdZJZUUwPCYcEkx4Wwg8AXgAYzm0XYOwtrjXKWE4OsvPUeZ2pBcR9I6JqszlEKS_6OrYd61NO2emDpLSGXEb7tVdt6YafA1_BcPR3xSjsYyGpaQz4sDSs9NcLF61J9KjoRIrFCWl17aLBXuzFDUNRnWievNXUfTO8bFiFj6IPUfObpLoQ","e":"AQAB"};
+  function _pCat(t){t=(t||'').toUpperCase().replace(/\s/g,'');if(t.includes('LIHCH'))return 'k';if(t.includes('N2XH'))return 'b';if(t.includes('CAT'))return 'd';if(!t)return 'x';var m=t.match(/^(\d+)X/);if(m)return (+m[1]>=3)?'b':'k';return 'x';}
+  function _pRow(n,kod){var kab=(n&&n.besleme&&n.besleme.kablolar)||[];var r={kod:kod,kaynak:(n&&n.besleme&&n.besleme.kaynak)||'',montaj:n&&n.montaj?1:0,bC:0,bT:0,kC:0,kT:0,dC:0,dT:0,mt:0};kab.forEach(function(c){var ct=_pCat(c.tip),a=+c.adet||1,done=c.durum==='cekildi',mt=parseFloat(c.mt)||0;if(ct==='b'){r.bT+=a;if(done)r.bC+=a;}else if(ct==='k'){r.kT+=a;if(done)r.kC+=a;}else if(ct==='d'){r.dT+=a;if(done)r.dC+=a;}if(done)r.mt+=mt*a;});return r;}
+  function _panoSnapshot(){
+    try{
+      if(typeof window._rpDbBul!=='function') return null;
+      var DBC=[];for(var i=1;i<=59;i++){var id=String(i).padStart(2,'0');var r=_pRow(window._rpDbBul(id),id);if(r.bT+r.kT+r.dT>0)DBC.push([id,r.montaj,r.kaynak,r.bC,r.bT,r.kC,r.kT,r.mt]);}
+      var PANOC=[];Array.prototype.slice.call(document.querySelectorAll('.mk.pano')).forEach(function(el){var k=(el.textContent||'').replace(/[📷★]/g,'').replace(/\s+/g,' ').trim().replace(/‑/g,'-');var n=null;try{n=window._rpPanoBul(k);}catch(e){}var r=_pRow(n,k);if(r.bT+r.kT+r.dT>0)PANOC.push([k,/ÇAP/i.test(k)?'cap':'saha',r.montaj,r.kaynak,r.bC,r.bT,r.kC,r.kT,r.dC,r.dT,r.mt]);});
+      var DBS=Array.prototype.slice.call(document.querySelectorAll('.mk.db')).map(function(el){var c=''+(el.className&&el.className.baseVal!==undefined?el.className.baseVal:el.className);var tok=c.split(/\s+/);return [(el.textContent||'').replace(/[📷★]/g,'').replace(/\s+/g,' ').trim(),tok.indexOf('m1')>=0?1:0,tok.indexOf('kablo')>=0?'k':'-',/📷/.test(el.textContent||'')?1:0,/★/.test(el.textContent||'')?1:0];});
+      var L=['DB MONTAJ','DB KABLOLAMA','ÇAP MONTAJ'],o={},s={};Array.prototype.slice.call(document.querySelectorAll('*')).forEach(function(el){if(el.children.length>4)return;var t=(el.textContent||'').replace(/\s+/g,' ').trim();L.forEach(function(x){if(!s[x]&&t.indexOf(x)===0&&t.length<45){var n=t.match(/\d+/g)||[];if(n.length>=3){o[x]=[+n[0],+n[1],+n[2]];s[x]=1;}}});});
+      if(!o['DB MONTAJ']||!o['ÇAP MONTAJ']) return null;
+      var bC=DBC.reduce(function(a,r){return a+r[3];},0)+PANOC.reduce(function(a,r){return a+r[4];},0), bT=DBC.reduce(function(a,r){return a+r[4];},0)+PANOC.reduce(function(a,r){return a+r[5];},0);
+      var kC=DBC.reduce(function(a,r){return a+r[5];},0)+PANOC.reduce(function(a,r){return a+r[6];},0), kT=DBC.reduce(function(a,r){return a+r[6];},0)+PANOC.reduce(function(a,r){return a+r[7];},0);
+      var dC=PANOC.reduce(function(a,r){return a+r[8];},0), dT=PANOC.reduce(function(a,r){return a+r[9];},0);
+      var kabloPct=Math.round((bC+kC+dC)/((bT+kT+dT)||1)*100);
+      var OFFICIAL={montaj:[o['DB MONTAJ'][0],o['DB MONTAJ'][1]],kablolama:(o['DB KABLOLAMA']||[0,59,0]),cap:[o['ÇAP MONTAJ'][0],o['ÇAP MONTAJ'][1]]};
+      return {DBC:DBC,PANOC:PANOC,DBS:DBS,OFFICIAL:OFFICIAL,kabloPct:kabloPct,ts:Date.now()};
+    }catch(e){ return null; }
+  }
+  async function _panoEncrypt(obj){
+    var enc=new TextEncoder().encode(JSON.stringify(obj));
+    var aes=await crypto.subtle.generateKey({name:'AES-GCM',length:256},true,['encrypt']);
+    var iv=crypto.getRandomValues(new Uint8Array(12));
+    var ct=await crypto.subtle.encrypt({name:'AES-GCM',iv:iv},aes,enc);
+    var raw=await crypto.subtle.exportKey('raw',aes);
+    var pub=await crypto.subtle.importKey('jwk',PANO_PUBJWK,{name:'RSA-OAEP',hash:'SHA-256'},false,['encrypt']);
+    var ek=await crypto.subtle.encrypt({name:'RSA-OAEP'},pub,raw);
+    var b64=function(b){var u=new Uint8Array(b),x='';for(var i=0;i<u.length;i++)x+=String.fromCharCode(u[i]);return btoa(x);};
+    return {ek:b64(ek),iv:b64(iv),ct:b64(ct)};
+  }
+  async function panoYayinla(){
+    try{
+      if(!bulutAcik) return;
+      var snap=_panoSnapshot(); if(!snap) return;
+      var pay=await _panoEncrypt(snap);
+      await fdb.collection('public').doc('takip').set({ enc: JSON.stringify(pay), ts: snap.ts });
+    }catch(e){ try{ console.warn('pano yayin hata', e); }catch(_){} }
+  }
+
   async function sha(s){
     try{
       const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
@@ -1766,6 +1810,7 @@ rsayGuncelle();
         }
         sonYazma = Date.now();
         await PAFTA.set({ state: JSON.stringify(hafif), updatedAt: sonYazma, yazan: istemci });
+        try{ panoYayinla(); }catch(_){}
       }catch(e){ try{ console.warn('bulut yazma hata', e); }catch(_){} }
     }, 700);
   }
