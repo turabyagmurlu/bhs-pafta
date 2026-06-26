@@ -50,7 +50,6 @@ header .sub{font-size:11px;color:var(--mut)}
 body[data-rol="izleyici"] #panel{pointer-events:none}
 body[data-rol="izleyici"] #panel button[onclick*="kapat"]{pointer-events:auto}
 body[data-rol="saha"] #panel button[onclick*="sil()"]{display:none}
-body[data-rol="saha"] #panel button[onclick*="kaydir"]{display:none}
 body[data-rol="saha"] #panel button[onclick*="fotoSil"]{display:none}
 body[data-rol="saha"] [onclick*="mahalEkle()"],body[data-rol="izleyici"] [onclick*="mahalEkle()"],body[data-rol="saha"] [onclick*="mahalSil("],body[data-rol="izleyici"] [onclick*="mahalSil("],body[data-rol="saha"] [onclick*="mahalAdDegis("],body[data-rol="izleyici"] [onclick*="mahalAdDegis("],body[data-rol="saha"] [onclick*="mahalUyeDuzenle("],body[data-rol="izleyici"] [onclick*="mahalUyeDuzenle("]{display:none}
 #lejant{position:absolute;left:14px;bottom:14px;background:rgba(21,34,46,.94);border-radius:10px;padding:12px 16px;font-size:12px;z-index:40;line-height:2}
@@ -1050,7 +1049,7 @@ function rolUygula(){
   ["[onclick*=\"ekle('db')\"]","[onclick*=\"ekle('pano')\"]","[onclick*='kilitToggle()']","[onclick*='iceAktarSec()']","[onclick*='raporAc()']","[onclick*='wpAc()']","[onclick*='geriAl()']","[onclick*='elleKaydet()']","[onclick*='raporPaftaAc()']"].forEach(function(sel){ document.querySelectorAll(sel).forEach(function(e){e.style.display='';}); });
   document.querySelectorAll('[onclick*="gunlukAc()"]').forEach(function(e){ e.style.display=(rol==='yonetici')?'':'none'; });
   var H=function(sels){ sels.forEach(function(sel){ document.querySelectorAll(sel).forEach(function(e){e.style.display='none';}); }); };
-  if(rol==='saha'){ H(["[onclick*=\"ekle('db')\"]","[onclick*=\"ekle('pano')\"]","[onclick*='kilitToggle()']","[onclick*='iceAktarSec()']"]); }
+  if(rol==='saha'){ H(["[onclick*=\"ekle('db')\"]","[onclick*=\"ekle('pano')\"]","[onclick*='iceAktarSec()']"]); }
   else if(rol==='izleyici'){ H(["[onclick*=\"ekle('db')\"]","[onclick*=\"ekle('pano')\"]","[onclick*='kilitToggle()']","[onclick*='iceAktarSec()']","[onclick*='raporAc()']","[onclick*='wpAc()']","[onclick*='geriAl()']","[onclick*='elleKaydet()']","[onclick*='raporPaftaAc()']"]); }
 }
 function _hedefAd(){ try{ var o=nesne(); return secili.tip==='db'?('DB '+String(o.id).padStart(2,'0')):o.kod; }catch(e){ return '?'; } }
