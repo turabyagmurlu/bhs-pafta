@@ -22,6 +22,12 @@ body{font-family:'Segoe UI',system-ui,Arial,sans-serif;background:#0b1722;color:
 .mlbl{width:150px;color:#cfe3ea;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mbar{flex:1;height:13px;background:#0b1722;border-radius:6px;overflow:hidden}.mbar>div{height:100%;border-radius:6px}
 .mval{width:42px;text-align:right;color:#9fb6c6}
+.mdet{margin:-3px 0 11px 4px;padding:7px 11px;background:#0e1f2c;border:1px solid #1d3144;border-radius:8px;display:flex;flex-direction:column;gap:3px}
+.mdet .ekh{font-size:10px;color:#7c93a5;text-transform:uppercase;letter-spacing:.4px;margin-bottom:1px}
+.mdet .ek{font-size:11px;color:#c7d6e2;line-height:1.5}
+.mdet .ek b{color:#ff9b9b}
+.mdet .ek i{color:#8aa0b2;font-style:normal}
+.mclick{cursor:pointer}
 table{width:100%;border-collapse:collapse;font-size:12px}
 th,td{text-align:left;padding:6px 8px;border-bottom:1px solid #1d3144}
 th{color:#7c93a5;font-weight:600} td{color:#dde}
@@ -212,10 +218,42 @@ async function yukle(){
     uy.forEach(function(u){ var o=nodeBul(u.t,u.k); if(!o)return; topN++; var s=_kbSayac(o,u.t); birimT+=1+s.toplam; birimB+=(o.montaj?1:0)+s.biten; if(_noktaBitti(o,u.t))tamN++; });
     return {yuzde:birimT?Math.round(birimB/birimT*100):0, bitti:topN>0&&tamN===topN};
   }
-  var mhtml=mahaller.map(function(m){
+  function _noktaDetay(o,tip){
+    var eksik=[];
+    if(!o.montaj) eksik.push('montaj');
+    var bk=(o.besleme&&Array.isArray(o.besleme.kablolar))?o.besleme.kablolar:null;
+    if(!bk){ var key=tip==='db'?String(o.id).padStart(2,'0'):o.kod; var bd=(typeof BESLEME!=='undefined')?BESLEME[key]:null; bk=bd?bd.kablolar.map(function(){return{durum:'bekliyor'};}):[]; }
+    var besBek=bk.filter(function(k){return (k.durum||'bekliyor')==='bekliyor';}).length;
+    if(besBek>0) eksik.push('besleme '+besBek);
+    var hatlar=[];
+    if(tip==='db'){ var hb=(typeof HATLAR!=='undefined')?HATLAR[String(o.id).padStart(2,'0')]:null; if(hb)hatlar=hb.hatlar.slice(); }
+    else { if(typeof PANO_LINYE!=='undefined'&&PANO_LINYE[o.kod]) hatlar=PANO_LINYE[o.kod].map(function(x){return x.l;}); }
+    var gizli=o.gizliLinye||[]; hatlar=hatlar.filter(function(h){return gizli.indexOf(h)<0;});
+    (o.ekLinye||[]).forEach(function(h){ if(hatlar.indexOf(h)<0)hatlar.push(h); });
+    var linBek=hatlar.filter(function(h){ var l=(o.linye&&o.linye[h])||{}; return (l.durum||'bekliyor')==='bekliyor'; });
+    if(linBek.length>0) eksik.push('linye '+linBek.join('·'));
+    return eksik;
+  }
+  function _mahalEksikler(m){
+    var uy=m.uyeler||[]; var out=[];
+    uy.forEach(function(u){ var o=nodeBul(u.t,u.k); var kod=(u.t==='db'?'DB'+u.k:u.k);
+      if(!o){ out.push({kod:kod,txt:'paftada yok'}); return; }
+      if(_noktaBitti(o,u.t)) return;
+      var e=_noktaDetay(o,u.t); out.push({kod:kod, txt:e.join(' · ')||'eksik'}); });
+    return out;
+  }
+  var mhtml=mahaller.map(function(m,mi){
     var d=_mahalDurum(m); var p=d.yuzde; var renk=d.bitti?'#2dd4bf':(p>0?'#fcd34d':'#ff6b6b');
     var rozet=d.bitti?' <span style="background:#1c3a2b;color:#86efac;border:1px solid #2f6244;border-radius:20px;padding:1px 8px;font-size:10px;font-weight:700">✓ Tamam</span>':'';
-    return '<div class="mrow"><div class="mlbl">'+(m.ad||'?')+rozet+'</div><div class="mbar"><div style="width:'+p+'%;background:'+renk+'"></div></div><div class="mval">%'+p+'</div></div>';
+    var eks=d.bitti?[]:_mahalEksikler(m);
+    var cnt=eks.length?' <span style="color:#7c93a5;font-size:10px;font-weight:400">▾ '+eks.length+' eksik nokta</span>':'';
+    var row='<div class="mrow'+(eks.length?' mclick':'')+'"'+(eks.length?' onclick="var x=document.getElementById(\'mdet'+mi+'\');x.style.display=x.style.display===\'none\'?\'flex\':\'none\'"':'')+'><div class="mlbl">'+(m.ad||'?')+rozet+'</div><div class="mbar"><div style="width:'+p+'%;background:'+renk+'"></div></div><div class="mval">%'+p+'</div></div>';
+    var det='';
+    if(eks.length){
+      det='<div class="mdet" id="mdet'+mi+'"><div class="ekh">'+(m.ad||'')+' — kalan işler ('+eks.length+' nokta)</div>'+
+        eks.map(function(e){return '<div class="ek"><b>'+e.kod+'</b> <i>— '+e.txt+'</i></div>';}).join('')+'</div>';
+    }
+    return row+det;
   }).join('');
   document.getElementById('mahalList').innerHTML=mhtml||'<div style="color:#7c93a5;font-size:12px">Mahal yok</div>';
   var tamM=mahaller.filter(function(m){ return _mahalDurum(m).bitti; }).length;
