@@ -191,17 +191,34 @@ async function yukle(){
   var gk=Object.keys(byG).filter(x=>x!=='?').sort().slice(-30);
   new Chart(document.getElementById('cGun'),{type:'bar',data:{labels:gk.map(t=>{var p=t.split('-');return p.length===3?(p[2]+'.'+p[1]):t;}),datasets:[{label:'rapor',data:gk.map(t=>byG[t]),backgroundColor:dgreen}]},options:{plugins:{legend:{display:false}},maintainAspectRatio:false,scales:{y:{beginAtZero:true,ticks:{precision:0}}}}});
 
-  // ---- mahal ilerleme ----
+  // ---- mahal ilerleme (PAFTA ile AYNI: montaj + besleme + TUM plan linyeleri) ----
   function nodeBul(t,k){ return t==='db'? dbs.find(x=>String(x.id)===String(k)) : panos.find(x=>String(x.kod)===String(k)); }
-  function nodeTam(o){ if(!o) return false; var L=o.linye||{}; var keys=Object.keys(L); var linOk=keys.every(k=>{var s=L[k].durum||'bekliyor'; return s==='cekildi'||s==='revize'||s==='birlesti';}); return (o.montaj?true:false) && linOk; }
+  function _kbSayac(o,tip){
+    var dur=[];
+    var bk=(o.besleme&&Array.isArray(o.besleme.kablolar))?o.besleme.kablolar:null;
+    if(!bk){ var key=tip==='db'?String(o.id).padStart(2,'0'):o.kod; var bd=(typeof BESLEME!=='undefined')?BESLEME[key]:null; bk=bd?bd.kablolar.map(function(){return{durum:'bekliyor'};}):[]; }
+    bk.forEach(function(k){ dur.push(k.durum||'bekliyor'); });
+    var hatlar=[];
+    if(tip==='db'){ var hb=(typeof HATLAR!=='undefined')?HATLAR[String(o.id).padStart(2,'0')]:null; if(hb)hatlar=hb.hatlar.slice(); }
+    else { if(typeof PANO_LINYE!=='undefined'&&PANO_LINYE[o.kod]) hatlar=PANO_LINYE[o.kod].map(function(x){return x.l;}); }
+    var gizli=o.gizliLinye||[]; hatlar=hatlar.filter(function(h){return gizli.indexOf(h)<0;});
+    (o.ekLinye||[]).forEach(function(h){ if(hatlar.indexOf(h)<0)hatlar.push(h); });
+    hatlar.forEach(function(h){ var l=(o.linye&&o.linye[h])||{}; dur.push(l.durum||'bekliyor'); });
+    return {toplam:dur.length, biten:dur.filter(function(d){return d&&d!=='bekliyor';}).length};
+  }
+  function _noktaBitti(o,tip){ if(!o||!o.montaj)return false; var s=_kbSayac(o,tip); return s.toplam===0||s.biten===s.toplam; }
+  function _mahalDurum(m){
+    var uy=m.uyeler||[]; var birimT=0,birimB=0,topN=0,tamN=0;
+    uy.forEach(function(u){ var o=nodeBul(u.t,u.k); if(!o)return; topN++; var s=_kbSayac(o,u.t); birimT+=1+s.toplam; birimB+=(o.montaj?1:0)+s.biten; if(_noktaBitti(o,u.t))tamN++; });
+    return {yuzde:birimT?Math.round(birimB/birimT*100):0, bitti:topN>0&&tamN===topN};
+  }
   var mhtml=mahaller.map(function(m){
-    var uy=m.uyeler||[]; var tam=uy.filter(function(u){return nodeTam(nodeBul(u.t,u.k));}).length;
-    var p=pct(tam,uy.length); var renk=p>=100?'#2dd4bf':(p>0?'#fcd34d':'#ff6b6b');
-    var rozet=p>=100?' <span style="background:#1c3a2b;color:#86efac;border:1px solid #2f6244;border-radius:20px;padding:1px 8px;font-size:10px;font-weight:700">✓ Tamam</span>':'';
+    var d=_mahalDurum(m); var p=d.yuzde; var renk=d.bitti?'#2dd4bf':(p>0?'#fcd34d':'#ff6b6b');
+    var rozet=d.bitti?' <span style="background:#1c3a2b;color:#86efac;border:1px solid #2f6244;border-radius:20px;padding:1px 8px;font-size:10px;font-weight:700">✓ Tamam</span>':'';
     return '<div class="mrow"><div class="mlbl">'+(m.ad||'?')+rozet+'</div><div class="mbar"><div style="width:'+p+'%;background:'+renk+'"></div></div><div class="mval">%'+p+'</div></div>';
   }).join('');
   document.getElementById('mahalList').innerHTML=mhtml||'<div style="color:#7c93a5;font-size:12px">Mahal yok</div>';
-  var tamM=mahaller.filter(function(m){var uy=m.uyeler||[];return uy.length&&uy.filter(function(u){return nodeTam(nodeBul(u.t,u.k));}).length===uy.length;}).length;
+  var tamM=mahaller.filter(function(m){ return _mahalDurum(m).bitti; }).length;
   var mo=document.getElementById('mahalOzet'); if(mo) mo.textContent='· '+tamM+'/'+mahaller.length+' tamam';
 
   // ---- son raporlar ----
