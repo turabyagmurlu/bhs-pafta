@@ -1693,6 +1693,45 @@ rsayGuncelle();
   const PANO_PUBJWK = {"key_ops":["encrypt"],"ext":true,"alg":"RSA-OAEP-256","kty":"RSA","n":"0FqaYMJPqfdnWLGQIPKFzggvvcY_rwO-iGAl_QXw2WIDPrxNx1lqTIR9L8xbTHaZpcWRTgdBhgKYfQ5B83i3Vs2GIcndo56zpodNjHwgb_3ZhvkIl04n5Egn5YhPFwWZE9cUeWxAykd1MnyME3FsClTB2JS2VS9m1rw0AYdZJZUUwPCYcEkx4Wwg8AXgAYzm0XYOwtrjXKWE4OsvPUeZ2pBcR9I6JqszlEKS_6OrYd61NO2emDpLSGXEb7tVdt6YafA1_BcPR3xSjsYyGpaQz4sDSs9NcLF61J9KjoRIrFCWl17aLBXuzFDUNRnWievNXUfTO8bFiFj6IPUfObpLoQ","e":"AQAB"};
   function _pCat(t){t=(t||'').toUpperCase().replace(/\s/g,'');if(t.includes('LIHCH'))return 'k';if(t.includes('N2XH'))return 'b';if(t.includes('CAT'))return 'd';if(!t)return 'x';var m=t.match(/^(\d+)X/);if(m)return (+m[1]>=3)?'b':'k';return 'x';}
   function _pRow(n,kod){var kab=(n&&n.besleme&&n.besleme.kablolar)||[];var r={kod:kod,kaynak:(n&&n.besleme&&n.besleme.kaynak)||'',montaj:n&&n.montaj?1:0,bC:0,bT:0,kC:0,kT:0,dC:0,dT:0,mt:0};kab.forEach(function(c){var ct=_pCat(c.tip),a=+c.adet||1,done=c.durum==='cekildi',mt=parseFloat(c.mt)||0;if(ct==='b'){r.bT+=a;if(done)r.bC+=a;}else if(ct==='k'){r.kT+=a;if(done)r.kC+=a;}else if(ct==='d'){r.dT+=a;if(done)r.dC+=a;}if(done)r.mt+=mt*a;});return r;}
+  // ===== DASHBOARD SUMMARY (data'dan, DOM'dan DEGIL - saglam, kucuk) =====
+  window.bhsSummary=function(){
+    try{
+      var dbs=(data.dbs||[]),panos=(data.panos||[]),raporlar=(data.raporlar||[]),mahaller=(data.mahaller||[]);
+      var dbMontaj=dbs.filter(function(x){return x.montaj;}).length;
+      var caps=panos.filter(function(p){return /ÇAP/i.test(p.kod||'');});
+      var capMontaj=caps.filter(function(p){return p.montaj;}).length;
+      var bC=0,bT=0,kC=0,kT=0,dC=0,dT=0,metraj=0,bolge={},kalanIs=0;
+      dbs.forEach(function(d){
+        var r=_pRow(d,String(d.id).padStart(2,'0'));
+        bC+=r.bC;bT+=r.bT;kC+=r.kC;kT+=r.kT;dC+=r.dC;dT+=r.dT;metraj+=r.mt;
+        var pend=(r.bT-r.bC)+(r.kT-r.kC)+(r.dT-r.dC);
+        if(pend>0){var k=r.kaynak||'(kaynak yok)';bolge[k]=(bolge[k]||0)+pend;}
+        if(!d.montaj||pend>0)kalanIs++;
+      });
+      panos.forEach(function(p){
+        var r=_pRow(p,p.kod);
+        bC+=r.bC;bT+=r.bT;kC+=r.kC;kT+=r.kT;dC+=r.dC;dT+=r.dT;metraj+=r.mt;
+        var pend=(r.bT-r.bC)+(r.kT-r.kC)+(r.dT-r.dC);
+        if(pend>0){var k=r.kaynak||'(kaynak yok)';bolge[k]=(bolge[k]||0)+pend;}
+      });
+      var cablePercent=(bT+kT+dT)?Math.round((bC+kC+dC)/(bT+kT+dT)*100):0;
+      var bolgeler=Object.keys(bolge).map(function(k){return {kaynak:k,pending:bolge[k]};}).sort(function(a,b){return b.pending-a.pending;});
+      var docSize=0;try{docSize=JSON.stringify(data).length;}catch(e){}
+      return {
+        schema:1,
+        lastSyncAt:new Date().toISOString(),
+        counts:{dbs:dbs.length,panos:panos.length,raporlar:raporlar.length,mahal:mahaller.length},
+        progress:{dbPercent:dbs.length?Math.round(dbMontaj/dbs.length*100):0,capPercent:caps.length?Math.round(capMontaj/caps.length*100):0,cablePercent:cablePercent},
+        montaj:{db:[dbMontaj,dbs.length],cap:[capMontaj,caps.length]},
+        metraj:Math.round(metraj),
+        aktifBolge:bolgeler.length,
+        kalanIs:kalanIs,
+        priorities:bolgeler.slice(0,3).map(function(z){return z.kaynak+' ('+z.pending+' kablo)';}),
+        docSize:docSize,
+        verify:{dbs:dbs.length+'/'+dbs.length,panos:panos.length+'/'+panos.length,raporlar:raporlar.length,mahal:mahaller.length}
+      };
+    }catch(e){ return null; }
+  };
   function _panoSnapshot(){
     try{
       if(typeof window._rpDbBul!=='function') return null;
@@ -1706,7 +1745,7 @@ rsayGuncelle();
       var dC=PANOC.reduce(function(a,r){return a+r[8];},0), dT=PANOC.reduce(function(a,r){return a+r[9];},0);
       var kabloPct=Math.round((bC+kC+dC)/((bT+kT+dT)||1)*100);
       var OFFICIAL={montaj:[o['DB MONTAJ'][0],o['DB MONTAJ'][1]],kablolama:(o['DB KABLOLAMA']||[0,59,0]),cap:[o['ÇAP MONTAJ'][0],o['ÇAP MONTAJ'][1]]};
-      return {DBC:DBC,PANOC:PANOC,DBS:DBS,OFFICIAL:OFFICIAL,kabloPct:kabloPct,ts:Date.now()};
+      return {DBC:DBC,PANOC:PANOC,DBS:DBS,OFFICIAL:OFFICIAL,kabloPct:kabloPct,summary:(typeof window.bhsSummary==='function'?window.bhsSummary():null),ts:Date.now()};
     }catch(e){ return null; }
   }
   async function _panoEncrypt(obj){
