@@ -198,7 +198,26 @@ async function yukle(){
   new Chart(document.getElementById('cGun'),{type:'bar',data:{labels:gk.map(t=>{var p=t.split('-');return p.length===3?(p[2]+'.'+p[1]):t;}),datasets:[{label:'rapor',data:gk.map(t=>byG[t]),backgroundColor:dgreen}]},options:{plugins:{legend:{display:false}},maintainAspectRatio:false,scales:{y:{beginAtZero:true,ticks:{precision:0}}}}});
 
   // ---- mahal ilerleme (PAFTA ile AYNI: montaj + besleme + TUM plan linyeleri) ----
-  function nodeBul(t,k){ return t==='db'? dbs.find(x=>String(x.id)===String(k)) : panos.find(x=>String(x.kod)===String(k)); }
+  function nodeBul(t,k){
+    if(t==='db') return dbs.find(function(x){return parseInt(x.id,10)===k;});
+    return panos.find(function(x){return x.kod===k;});
+  }
+  // PAFTA kbDurum ile birebir: null=plan yok, 'yok'=hic cekilmemis, 'tamam', 'devam'=yarim
+  function _kbDurum(o,tip){
+    var durlar=[];
+    var bk=(o.besleme&&Array.isArray(o.besleme.kablolar))?o.besleme.kablolar:null;
+    if(!bk){ var key=tip==='db'?String(o.id).padStart(2,'0'):o.kod; var bd=(typeof BESLEME!=='undefined')?BESLEME[key]:null; bk=bd?bd.kablolar.map(function(){return{durum:'bekliyor'};}):[]; }
+    bk.forEach(function(k){ var sd=k.durum||'bekliyor'; if(sd==='revize'||sd==='birlesti')return; durlar.push(sd); });
+    var hatlar=[];
+    if(tip==='db'){ var hb=(typeof HATLAR!=='undefined')?HATLAR[String(o.id).padStart(2,'0')]:null; if(hb)hatlar=hb.hatlar.slice(); }
+    else { if(typeof PANO_LINYE!=='undefined'&&PANO_LINYE[o.kod]) hatlar=PANO_LINYE[o.kod].map(function(x){return x.l;}); }
+    var gizli=o.gizliLinye||[]; hatlar=hatlar.filter(function(h){return gizli.indexOf(h)<0;});
+    (o.ekLinye||[]).forEach(function(h){ if(hatlar.indexOf(h)<0)hatlar.push(h); });
+    hatlar.forEach(function(h){ var l=(o.linye&&o.linye[h])||{}; var sd=l.durum||'bekliyor'; if(sd==='revize'||sd==='birlesti')return; durlar.push(sd); });
+    var toplam=durlar.length; if(!toplam)return null;
+    var biten=durlar.filter(function(d){return d==='cekildi';}).length;
+    if(biten===0)return 'yok'; if(biten===toplam)return 'tamam'; return 'devam';
+  }
   function _kbSayac(o,tip){
     var dur=[];
     var bk=(o.besleme&&Array.isArray(o.besleme.kablolar))?o.besleme.kablolar:null;
@@ -212,7 +231,7 @@ async function yukle(){
     hatlar.forEach(function(h){ var l=(o.linye&&o.linye[h])||{}; dur.push(l.durum||'bekliyor'); });
     return {toplam:dur.length, biten:dur.filter(function(d){return d&&d!=='bekliyor';}).length};
   }
-  function _noktaBitti(o,tip){ if(!o||!o.montaj)return false; var s=_kbSayac(o,tip); return s.toplam===0||s.biten===s.toplam; }
+  function _noktaBitti(o,tip){ if(!o||!o.montaj)return false; var kd=_kbDurum(o,tip); return kd===null||kd==='tamam'; }
   function _mahalDurum(m){
     var uy=m.uyeler||[]; var birimT=0,birimB=0,topN=0,tamN=0;
     uy.forEach(function(u){ var o=nodeBul(u.t,u.k); if(!o)return; topN++; var s=_kbSayac(o,u.t); birimT+=1+s.toplam; birimB+=(o.montaj?1:0)+s.biten; if(_noktaBitti(o,u.t))tamN++; });
@@ -236,9 +255,9 @@ async function yukle(){
   }
   function _mahalEksikler(m){
     var uy=m.uyeler||[]; var out=[];
-    uy.forEach(function(u){ var o=nodeBul(u.t,u.k); var kod=(u.t==='db'?'DB'+u.k:u.k);
-      if(!o){ out.push({kod:kod,txt:'paftada yok'}); return; }
+    uy.forEach(function(u){ var o=nodeBul(u.t,u.k); if(!o) return;
       if(_noktaBitti(o,u.t)) return;
+      var kod=(u.t==='db'?('DB'+parseInt(o.id,10)):o.kod);
       var e=_noktaDetay(o,u.t); out.push({kod:kod, txt:e.join(' · ')||'eksik'}); });
     return out;
   }
