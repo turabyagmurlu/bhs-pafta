@@ -2058,4 +2058,18 @@ rsayGuncelle();
     inp.onkeydown = (e)=>{ if(e.key==='Enter') dene(); };
     setTimeout(()=>{ try{ inp.focus(); }catch(e){} }, 50);
   }
-  function girisEkraniGoster(){ girisEkraniKur(); const o=document.getElementById('bhsGiris'); if(o) o.style.disp
+  function girisEkraniGoster(){ girisEkraniKur(); const o=document.getElementById('bhsGiris'); if(o) o.style.display='flex'; }
+  function girisEkraniGizle(){ const o=document.getElementById('bhsGiris'); if(o) o.style.display='none'; }
+
+  // online iken hemen kilidi goster (baseline pafta gorunmesin)
+  girisEkraniGoster();
+  try{ fauth.setPersistence(firebase.auth.Auth.Persistence.LOCAL); }catch(e){}
+  fauth.onAuthStateChanged((u)=>{
+    if(u){ window.ROL={'yonetici@bhs-pafta.com':'yonetici','saha@bhs-pafta.com':'saha','izleyici@bhs-pafta.com':'izleyici'}[u.email]||'saha'; girisEkraniGizle(); senkronBasla(); try{ if(typeof rolUygula==='function') setTimeout(rolUygula,120); }catch(e){} }
+    else { girisEkraniGoster(); }
+  });
+
+})();
+</script>
+</body>
+</html>
