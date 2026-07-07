@@ -1043,7 +1043,6 @@ function _mahalRaporWP(){
   alert(s);
 }
 function _loadChartJS(){ return new Promise(function(res,rej){ if(window.Chart) return res(); var s=document.createElement('script'); s.src='https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js'; s.onload=function(){res();}; s.onerror=rej; document.head.appendChild(s); }); }
-async function _loadChartJS(){ return new Promise(function(res,rej){ if(window.Chart) return res(); var s=document.createElement('script'); s.src='https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js'; s.onload=function(){res();}; s.onerror=rej; document.head.appendChild(s); }); }
 async function _mahalRaporExcel(){
  try{
   await _loadChartJS();
@@ -1164,7 +1163,7 @@ async function _mahalRaporExcel(){
   // ================= MAHAL SAYFALARI =================
   for(var mi=0; mi<rows.length; mi++){ var r=rows[mi];
     var my=cnt(r,'montaj yok'),ky=cnt(r,'kablo yok'),kr=cnt(r,'kablo yarım'), col=tc(r.yuzde);
-    var gauge=await chartCanvas({type:'doughnut',data:{datasets:[{data:[r.yuzde,100-r.yuzde],backgroundColor:[col,'#eef1f4'],borderWidth:0}]},options:{cutout:74%',rotation:-90,circumference:360,plugins:{legend:{display:false}}}},200,200);
+    var gauge=await chartCanvas({type:'doughnut',data:{datasets:[{data:[r.yuzde,100-r.yuzde],backgroundColor:[col,'#eef1f4'],borderWidth:0}]},options:{cutout:'74%',rotation:-90,circumference:360,plugins:{legend:{display:false}}}},200,200);
     var mbar=await chartCanvas({type:'bar',data:{labels:['Montaj yok','Kablo yok','Kablo yarım'],datasets:[{data:[my,ky,kr],backgroundColor:[C.montaj,C.yok,C.yarim],borderRadius:4,barThickness:30}]},options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{stepSize:1,font:{size:9}},grid:{color:'#eef2f6'}},x:{grid:{display:false},ticks:{font:{size:10}}}}}},360,150);
     var mc=mkCanvas(900,384); var mx=mc.cx; mx.fillStyle='#ffffff'; mx.fillRect(0,0,900,384);
     mx.fillStyle=grad(mx,0,0,900,88,ar(col)==='FF0F766E'?'#0b4a44':'#5a1616','#12303f'); mx.fillStyle=grad(mx,0,0,900,88, col==='#0f766e'?'#0b4a44':(col==='#b35e00'?'#7a4a06':'#6e1414'), '#12303f'); mx.fillRect(0,0,900,88);
