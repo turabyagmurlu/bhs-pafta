@@ -209,18 +209,33 @@ function uygula(){
 }
 let idbZaman = null;
 let gecmis = [], sonGoruntu = null, geriAliniyor = false, gecmisBekleyen = false;
+let saveDurum = 'bekliyor';
 function _gKlon(o){ const k=JSON.parse(JSON.stringify(Object.assign({},o,{fotolar:0}))); k.fotolar=(o.fotolar||[]).slice(); return k; }
 function anlikGoruntu(){ return { dbs:(data.dbs||[]).map(_gKlon), panos:(data.panos||[]).map(_gKlon), raporlar:(data.raporlar||[]).map(_gKlon), mahaller: JSON.parse(JSON.stringify(data.mahaller||[])) }; }
 function guncelleGeriBtn(){ const b=document.getElementById('geriBtn'); if(b){ b.disabled=!gecmis.length; b.style.opacity=gecmis.length?'1':'.45'; } }
 function geriAl(){ if(!gecmis.length){ toast('Geri alinacak islem yok','#7a5c1e'); return; } geriAliniyor=true; const g=gecmis.pop(); data={dbs:g.dbs||[],panos:g.panos||[],raporlar:g.raporlar||[],mahaller:g.mahaller||[]}; sonGoruntu=anlikGoruntu(); gecmisBekleyen=false; try{rsayGuncelle();}catch(e){} try{kapat();}catch(e){} ciz(); guncelleGeriBtn(); toast('Geri alindi'); setTimeout(()=>{ geriAliniyor=false; }, 400); }
-function kaydet(){
+function kaydet(force=false){
   if(!ilkCizim){ kirli = true; yedekUyariGoster(); }
   if(!geriAliniyor && !ilkCizim && !gecmisBekleyen){
     if(sonGoruntu){ gecmis.push(sonGoruntu); if(gecmis.length>30) gecmis.shift(); }
     gecmisBekleyen = true; guncelleGeriBtn();
   }
   clearTimeout(idbZaman);
-  idbZaman = setTimeout(()=>{ if(!geriAliniyor){ sonGoruntu = anlikGoruntu(); } gecmisBekleyen = false; idbSet('data', data).catch(()=>{}); }, 250);
+  const calistir=()=>{
+    if(!geriAliniyor){ sonGoruntu = anlikGoruntu(); }
+    gecmisBekleyen = false;
+    saveDurum='kaydediliyor';
+    idbSet('data', data).then(()=>{
+      saveDurum='kaydedildi';
+      const btn=document.getElementById('kaydetBtn');
+      if(btn){
+        btn.textContent='💾 Kaydedildi';
+        setTimeout(()=>{ if(btn && saveDurum==='kaydedildi'){ btn.textContent='💾 Kaydet'; } }, 1200);
+      }
+    }).catch(()=>{ saveDurum='hata'; });
+  };
+  if(force){ calistir(); return; }
+  idbZaman = setTimeout(calistir, 250);
 }
 function filtre(tip){
   aktifFiltre = (aktifFiltre===tip) ? null : tip;
@@ -825,13 +840,18 @@ function toast(msg, renk){
   toastZaman = setTimeout(()=>{ e.style.display='none'; }, 2200);
 }
 function elleKaydet(){
-  kaydet();
+  kaydet(true);
   toast('✓ Kaydedildi — cihaz hafızasında güvende' + (kirli ? ' (yedek için JSON dışa aktar)' : ''));
 }
-window.addEventListener('beforeunload' , e=>{
-  if(kirli){ e.preventDefault(); e.returnValue = 'Değişikliklerin var — çıkmadan JSON dışa aktar (yedek al).'; }
+document.addEventListener('visibilitychange', ()=>{
+  if(document.visibilityState === 'hidden' && kirli){ kaydet(true); }
 });
-
+window.addEventListener('pagehide', ()=>{
+  if(kirli){ kaydet(true); }
+});
+window.addEventListener('beforeunload' , e=>{
+  if(kirli){ kaydet(true); e.preventDefault(); e.returnValue = 'Değişikliklerin var — çıkmadan JSON dışa aktar (yedek al).'; }
+});
 
 
 // ============ WHATSAPP METİN ÇÖZÜMLEYİCİ ============
@@ -912,7 +932,7 @@ function mahalRender(){
     '<div style="font-size:12px;color:#90a4ae;margin-bottom:8px"><b style="color:#00e676">'+bitenM+'</b>/'+data.mahaller.length+' mahal bitti</div>'+
     (govde||'<div style="color:#7d93a3;font-size:12px;margin-bottom:8px">Henüz mahal yok. Aşağıdan ekleyip pano/DB ata.</div>')+
     '<button class="btn" style="width:100%;background:#2e6b3a;margin-top:4px" onclick="mahalEkle()">+ Mahal ekle</button>'+
-    '<button class="btn" style="width:100%;margin-top:6px;background:#26415a" onclick="mahalRapor()">📋 Saha durum raporu (kopyala)</button>'+
+    '<button class="btn" style="width:100%;margin-top:6px;background:#26415a" onclick="mahalRapor()">📋 Saha durum raporu (Excel indir)</button>'+
     '<button class="btn" style="width:100%;margin-top:6px" onclick="document.getElementById(\'mahalPanel\').style.display=\'none\'">Kapat</button>';
 }
 function mahalUyeDuzenle(id){
@@ -1003,17 +1023,86 @@ function mahalAdDegis(id){
 function mahalRapor(){
   data.mahaller=data.mahaller||[];
   if(!data.mahaller.length){ alert('Önce mahal ekle.'); return; }
-  const t=new Date().toLocaleDateString('tr-TR');
-  const bitti=[], devam=[];
-  data.mahaller.forEach(m=>{ const d=mahalDurum(m); (d.bitti?bitti:devam).push({m,d}); });
-  let s='🏘 BHS SAHA MAHAL DURUMU ('+t+')\n';
+  try{ toast('Excel hazırlanıyor…'); }catch(e){}
+  _loadExcelJS().then(function(){
+    if(!window.ExcelJS){ return _mahalRaporWP(); }
+    try{ _mahalRaporExcel(); }catch(err){ console.warn('excel hata',err); _mahalRaporWP(); }
+  }).catch(function(){ _mahalRaporWP(); });
+}
+function _loadExcelJS(){ return new Promise(function(res,rej){ if(window.ExcelJS) return res(); var s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js'; s.onload=function(){res();}; s.onerror=rej; document.head.appendChild(s); }); }
+function _mahalRaporWP(){
+  var t=new Date().toLocaleDateString('tr-TR'); var bitti=[], devam=[];
+  data.mahaller.forEach(function(m){ var d=mahalDurum(m); (d.bitti?bitti:devam).push({m:m,d:d}); });
+  var s='🏘 BHS SAHA MAHAL DURUMU ('+t+')\n';
   s+='Biten: '+bitti.length+'/'+data.mahaller.length+' mahal\n\n';
   s+='✅ BİTEN MAHALLER ('+bitti.length+'):\n';
-  s+= (bitti.length? bitti.map(x=>'• '+x.m.ad+' ('+x.d.biten+'/'+x.d.toplam+' nokta)').join('\n') : '— yok');
+  s+= (bitti.length? bitti.map(function(x){return '• '+x.m.ad+' ('+x.d.biten+'/'+x.d.toplam+' nokta)';}).join('\n') : '— yok');
   s+='\n\n🔧 DEVAM EDENLER ('+devam.length+'):\n';
-  s+= (devam.length? devam.map(x=>'• '+x.m.ad+' — %'+x.d.yuzde+' ('+x.d.biten+'/'+x.d.toplam+')'+(x.d.eksik.length?'\n   eksik: '+x.d.eksik.map(e=>e.ad+' ['+e.neden+']').join(', '):'')).join('\n') : '— yok');
-  if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(s).then(()=>{ try{toast('Saha raporu panoya kopyalandı');}catch(e){} }, ()=>{}); }
+  s+= (devam.length? devam.map(function(x){return '• '+x.m.ad+' — %'+x.d.yuzde+' ('+x.d.biten+'/'+x.d.toplam+')'+(x.d.eksik.length?'\n   eksik: '+x.d.eksik.map(function(e){return e.ad+' ['+e.neden+']';}).join(', '):'');}).join('\n') : '— yok');
+  if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(s).then(function(){ try{toast('WP raporu panoya kopyalandı (Excel açılamadı)');}catch(e){} }, function(){}); }
   alert(s);
+}
+function _mahalRaporExcel(){
+  var E=window.ExcelJS, wb=new E.Workbook(), t=new Date(), tarih=t.toLocaleDateString('tr-TR');
+  var NAVY='FF12303F',TEAL='FF0F766E',TEAL2='FF155E75',MONTAJ='FFE53935',YOK='FFB23A26',YARIM='FFE8821E',TAMAM='FF1E9E5A',GRAY='FF9AA7B3',CARD='FFF4F7FA',LINE='FFD8E0E8',INK='FF1C2733',MUT='FF647585';
+  function fl(a){return {type:'pattern',pattern:'solid',fgColor:{argb:a}};}
+  function ft(sz,b,c){return {name:'Arial',size:sz,bold:!!b,color:{argb:c||INK}};}
+  var THIN={style:'thin',color:{argb:LINE}}, MED={style:'medium',color:{argb:'FFB9C6D2'}};
+  function bd(){return {top:THIN,bottom:THIN,left:THIN,right:THIN};}
+  var CEN={vertical:'middle',horizontal:'center',wrapText:true}, LFT={vertical:'middle',horizontal:'left',wrapText:true};
+  function tip(k){k=(k||'').toLocaleUpperCase('tr'); if(k.indexOf('DB')===0)return 'Driver Box'; if(k.indexOf('ÇAP')>=0)return 'ÇAP panosu'; if(k.indexOf('-HK')>=0)return 'HK panosu'; if(k.indexOf('-HP')>=0)return 'HP panosu'; return 'Pano';}
+  function dc(n){return n==='montaj yok'?MONTAJ:(n==='kablo yok'?YOK:(n==='kablo yarım'?YARIM:GRAY));}
+  function tc(pv){return pv>=80?TEAL:(pv>=50?'FFB35E00':'FFB3261E');}
+  var rows=data.mahaller.map(function(m){ var d=mahalDurum(m); return {ad:m.ad||'?', yuzde:d.yuzde, biten:d.biten, toplam:d.toplam, eksik:(d.eksik||[]).slice()}; });
+  function cnt(r,n){return r.eksik.filter(function(e){return e.neden===n;}).length;}
+  var totN=rows.reduce(function(a,r){return a+r.toplam;},0), totE=rows.reduce(function(a,r){return a+r.eksik.length;},0), totB=totN-totE;
+  var bitenM=rows.filter(function(r){return r.eksik.length===0;}).length;
+  var avg=Math.round(rows.reduce(function(a,r){return a+r.yuzde;},0)/(rows.length||1));
+  function kpi(ws,c1,c2,row,lab,val,sub,clr){ ws.mergeCells(row,c1,row,c2); ws.mergeCells(row+1,c1,row+1,c2); ws.mergeCells(row+2,c1,row+2,c2); var A=ws.getCell(row,c1);A.value=lab;A.font=ft(9,true,'FFFFFFFF');A.fill=fl(clr);A.alignment=CEN; var B=ws.getCell(row+1,c1);B.value=val;B.font=ft(18,true,clr);B.alignment=CEN;B.fill=fl(CARD); var D=ws.getCell(row+2,c1);D.value=sub;D.font=ft(8.5,false,MUT);D.alignment=CEN;D.fill=fl(CARD); }
+  var ov=wb.addWorksheet('ÖZET',{views:[{showGridLines:false}]});
+  [4,30,12,14,10,12,12,13].forEach(function(w,i){ov.getColumn(i+1).width=w;});
+  ov.mergeCells('A1:H1'); var a1=ov.getCell('A1'); a1.value='🏘  BHS HILLSIDE BODRUM — SAHA MAHAL DURUMU'; a1.font=ft(18,true,'FFFFFFFF'); a1.fill=fl(NAVY); a1.alignment={vertical:'middle',horizontal:'left',indent:1}; ov.getRow(1).height=40;
+  ov.mergeCells('A2:H2'); var a2=ov.getCell('A2'); a2.value='Peyzaj Elektrik İmalat İlerlemesi · Rapor tarihi: '+tarih+' · Kaynak: BHS pafta'; a2.font=ft(10.5,false,MUT); a2.alignment={horizontal:'left',indent:1}; ov.getRow(2).height=20;
+  kpi(ov,1,2,4,'MAHAL',bitenM+' / '+rows.length,'biten mahal',TEAL2);
+  kpi(ov,3,4,4,'NOKTA',totB+'/'+totN,'biten nokta',TEAL);
+  kpi(ov,5,6,4,'ORT. İLERLEME','%'+avg,'mahal ort.','FFB35E00');
+  kpi(ov,7,8,4,'EKSİK',''+totE,'işi kalan',MONTAJ);
+  ov.getRow(4).height=16; ov.getRow(5).height=30; ov.getRow(6).height=15;
+  ['#','Mahal','İlerleme','Biten/Toplam','Eksik','Montaj yok','Kablo yok','Kablo yarım'].forEach(function(h,j){ var c=ov.getCell(8,j+1); c.value=h; c.font=ft(10,true,'FFFFFFFF'); c.fill=fl(TEAL2); c.alignment=CEN; c.border={top:MED,bottom:MED,left:THIN,right:THIN}; }); ov.getRow(8).height=26;
+  rows.forEach(function(r,i){ var rr=9+i; var my=cnt(r,'montaj yok'),ky=cnt(r,'kablo yok'),kr=cnt(r,'kablo yarım');
+    [i+1, r.ad, r.yuzde/100, r.biten+'/'+r.toplam, r.eksik.length, my, ky, kr].forEach(function(v,j){ var c=ov.getCell(rr,j+1); c.value=v; c.border=bd(); c.alignment=(j===1?LFT:CEN);
+      if(j===0)c.font=ft(10,true,MUT); else if(j===1)c.font=ft(10.5,true,INK); else if(j===2){c.numFmt='0%';c.font=ft(10,true,tc(r.yuzde));} else c.font=ft(10,false,INK); });
+    if(my)ov.getCell(rr,6).fill=fl('FFFDE7E6'); if(ky)ov.getCell(rr,7).fill=fl('FFF6E7E2'); if(kr)ov.getCell(rr,8).fill=fl('FFFCEFE0'); ov.getRow(rr).height=20; });
+  var trn=9+rows.length; ['','TOPLAM','',totB+'/'+totN,totE, rows.reduce(function(a,r){return a+cnt(r,'montaj yok');},0), rows.reduce(function(a,r){return a+cnt(r,'kablo yok');},0), rows.reduce(function(a,r){return a+cnt(r,'kablo yarım');},0)].forEach(function(v,j){ var c=ov.getCell(trn,j+1); c.value=v; c.font=ft(10,true,'FFFFFFFF'); c.fill=fl(NAVY); c.alignment=(j===1?LFT:CEN); c.border={top:MED,bottom:MED,left:THIN,right:THIN}; }); ov.getRow(trn).height=22;
+  rows.forEach(function(r){
+    var nm=(r.ad||'Mahal').replace(/[\/\\?*:\[\]]/g,'-').slice(0,31);
+    var ws=wb.addWorksheet(nm,{views:[{showGridLines:false}]});
+    [4,26,16,16,4,15,15,15].forEach(function(w,i){ws.getColumn(i+1).width=w;});
+    var my=cnt(r,'montaj yok'),ky=cnt(r,'kablo yok'),kr=cnt(r,'kablo yarım'), t2=tc(r.yuzde);
+    ws.mergeCells('A1:H1'); var h1=ws.getCell('A1'); h1.value='🔧  '+r.ad; h1.font=ft(16,true,'FFFFFFFF'); h1.fill=fl(t2); h1.alignment={vertical:'middle',horizontal:'left',indent:1}; ws.getRow(1).height=36;
+    ws.mergeCells('A2:H2'); var h2=ws.getCell('A2'); h2.value='Peyzaj Elektrik Saha İmalat Durumu · '+tarih+'  ·  '+(r.eksik.length===0?'✅ TAMAMLANDI':'🔧 Devam ediyor'); h2.font=ft(10.5,false,MUT); h2.alignment={horizontal:'left',indent:1}; ws.getRow(2).height=20;
+    kpi(ws,2,3,4,'TAMAMLANMA','%'+r.yuzde,'montaj+kablo',t2);
+    kpi(ws,4,4,4,'BİTEN NOKTA',r.biten+'/'+r.toplam,'tamamlanan',TEAL);
+    function scard(col,lab,val,clr){ var A=ws.getCell(4,col);A.value=lab;A.font=ft(8,true,'FFFFFFFF');A.fill=fl(clr);A.alignment=CEN; var B=ws.getCell(5,col);B.value=val;B.font=ft(18,true,clr);B.alignment=CEN;B.fill=fl(CARD); var D=ws.getCell(6,col);D.value='eksik';D.font=ft(8,false,MUT);D.alignment=CEN;D.fill=fl(CARD); }
+    scard(6,'MONTAJ YOK',my,MONTAJ); scard(7,'KABLO YOK',ky,YOK); scard(8,'KABLO YARIM',kr,YARIM);
+    ws.getRow(4).height=16; ws.getRow(5).height=28; ws.getRow(6).height=15;
+    ws.getCell(8,2).value='İlerleme çubuğu'; ws.getCell(8,2).font=ft(9,true,MUT);
+    var seg=Math.round(r.yuzde/10);
+    for(var g=0;g<10;g++){ var cc=ws.getCell(9,2+g); cc.value=(g===0?('%'+r.yuzde):''); cc.font=ft(9,true,'FFFFFFFF'); cc.alignment=CEN; cc.fill=fl(g<seg?t2:'FFE3E9EF'); cc.border={top:THIN,bottom:THIN,left:{style:'thin',color:{argb:'FFFFFFFF'}},right:{style:'thin',color:{argb:'FFFFFFFF'}}}; }
+    ws.getRow(9).height=18;
+    var t0=12; ws.mergeCells(t0-1,2,t0-1,5); var th=ws.getCell(t0-1,2); th.value='📋 EKSİK NOKTALAR ('+r.eksik.length+') — bu noktalarda iş var'; th.font=ft(11,true,INK);
+    ['#','Nokta Kodu','Tip','Durum'].forEach(function(h,j){ var c=ws.getCell(t0,2+j); c.value=h; c.font=ft(10,true,'FFFFFFFF'); c.fill=fl(NAVY); c.alignment=CEN; c.border={top:MED,bottom:MED,left:THIN,right:THIN}; }); ws.getRow(t0).height=22;
+    if(!r.eksik.length){ ws.mergeCells(t0+1,2,t0+1,5); var ec=ws.getCell(t0+1,2); ec.value='✅ Tüm noktalar tamamlandı — eksik yok'; ec.font=ft(11,true,TAMAM); ec.alignment=CEN; ec.fill=fl('FFE6F4EA'); }
+    r.eksik.forEach(function(e,i){ var rr=t0+1+i;
+      var c1=ws.getCell(rr,2);c1.value=i+1;c1.font=ft(10,true,MUT);c1.alignment=CEN;c1.border=bd();
+      var c2=ws.getCell(rr,3);c2.value=e.ad;c2.font=ft(10.5,true,INK);c2.alignment=LFT;c2.border=bd();
+      var c3=ws.getCell(rr,4);c3.value=tip(e.ad);c3.font=ft(10,false,MUT);c3.alignment=LFT;c3.border=bd();
+      var c4=ws.getCell(rr,5);c4.value=(e.neden||'').toLocaleUpperCase('tr');c4.font=ft(10,true,'FFFFFFFF');c4.fill=fl(dc(e.neden));c4.alignment=CEN;c4.border=bd();
+      ws.getRow(rr).height=19; });
+    var lg=t0+1+r.eksik.length+2; ws.getCell(lg,2).value='Durum renkleri:'; ws.getCell(lg,2).font=ft(9,true,MUT);
+    [['Montaj yok',MONTAJ],['Kablo yok',YOK],['Kablo yarım',YARIM],['Tamam',TAMAM]].forEach(function(pr,k){ var cc=ws.getCell(lg+1+k,2); cc.value=' '; cc.fill=fl(pr[1]); ws.getCell(lg+1+k,3).value=pr[0]; ws.getCell(lg+1+k,3).font=ft(9,false,INK); });
+  });
+  wb.xlsx.writeBuffer().then(function(buf){ var blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}); var url=URL.createObjectURL(blob); var a=document.createElement('a'); a.href=url; a.download='BHS_Mahal_Durumu_'+t.toISOString().slice(0,10)+'.xlsx'; document.body.appendChild(a); a.click(); setTimeout(function(){URL.revokeObjectURL(url);a.remove();},1000); try{toast('✅ Excel raporu indirildi');}catch(e){} });
 }
 // ============ EKSİK LİSTESİ + GÜNLÜK TY RAPOR ============
 function _eksikGit(tip,kod){
@@ -1969,18 +2058,4 @@ rsayGuncelle();
     inp.onkeydown = (e)=>{ if(e.key==='Enter') dene(); };
     setTimeout(()=>{ try{ inp.focus(); }catch(e){} }, 50);
   }
-  function girisEkraniGoster(){ girisEkraniKur(); const o=document.getElementById('bhsGiris'); if(o) o.style.display='flex'; }
-  function girisEkraniGizle(){ const o=document.getElementById('bhsGiris'); if(o) o.style.display='none'; }
-
-  // online iken hemen kilidi goster (baseline pafta gorunmesin)
-  girisEkraniGoster();
-  try{ fauth.setPersistence(firebase.auth.Auth.Persistence.LOCAL); }catch(e){}
-  fauth.onAuthStateChanged((u)=>{
-    if(u){ window.ROL={'yonetici@bhs-pafta.com':'yonetici','saha@bhs-pafta.com':'saha','izleyici@bhs-pafta.com':'izleyici'}[u.email]||'saha'; girisEkraniGizle(); senkronBasla(); try{ if(typeof rolUygula==='function') setTimeout(rolUygula,120); }catch(e){} }
-    else { girisEkraniGoster(); }
-  });
-
-})();
-</script>
-</body>
-</html>
+  function girisEkraniGoster(){ girisEkraniKur(); const o=document.getElementById('bhsGiris'); if(o) o.style.disp
