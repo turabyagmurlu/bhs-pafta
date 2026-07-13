@@ -40,6 +40,9 @@ th{color:#7c93a5;font-weight:600} td{color:#dde}
 .foot{text-align:center;color:#5b7184;font-size:11px;margin:18px 0}
 .yenile{cursor:pointer;color:#9fd2ff;font-size:12px}
 .cwrap{position:relative;height:240px}
+.turtab{background:#13212f;border:1px solid #20364a;color:#9fb6c6;font-size:12.5px;font-weight:600;padding:7px 14px;border-radius:9px;cursor:pointer;transition:.15s}
+.turtab:hover{background:#16273a;color:#cfe7e2}
+.turtab.active{background:linear-gradient(135deg,#0f766e,#155e75);color:#fff;border-color:#2dd4bf66}
 </style></head><body>
 <div class="giris" id="giris" style="display:none">
   <div class="gbox"><h2>📊 BHS İlerleme Panosu</h2>
@@ -62,6 +65,15 @@ th{color:#7c93a5;font-weight:600} td{color:#dde}
   <div class="row">
     <div class="card"><h3>Linye (hat) durumu</h3><div class="cwrap"><canvas id="cLinye"></canvas></div></div>
     <div class="card"><h3>Besleme / Kumanda kabloları</h3><div class="cwrap"><canvas id="cBes"></canvas></div></div>
+  </div>
+  <div class="card"><h3>Kablo türüne göre çekim <span style="font-weight:400;color:#86efac;font-size:12px">çekilen besleme/kumanda kabloları</span></h3>
+    <div id="turTabs" style="display:flex;gap:8px;margin:2px 0 12px;flex-wrap:wrap">
+      <button class="turtab active" data-m="metraj">Metraj (m)</button>
+      <button class="turtab" data-m="yuzde">Yüzde (%)</button>
+      <button class="turtab" data-m="adet">Adet</button>
+    </div>
+    <div class="cwrap"><canvas id="cTur"></canvas></div>
+    <div id="turOzet" style="margin-top:10px;font-size:12.5px;color:#9fb6c6"></div>
   </div>
   <div class="card"><h3>Günlük imalat aktivitesi (rapor sayısı)</h3><div class="cwrap"><canvas id="cGun"></canvas></div></div>
   <div class="card"><h3>Mahal bazlı tamamlanma <span id="mahalOzet" style="font-weight:400;color:#86efac;font-size:12px"></span></h3><div id="mahalList"></div></div>
@@ -196,6 +208,22 @@ async function yukle(){
   var byG={}; raporlar.forEach(function(r){ var t=r.tarih||'?'; byG[t]=(byG[t]||0)+1; });
   var gk=Object.keys(byG).filter(x=>x!=='?').sort().slice(-30);
   new Chart(document.getElementById('cGun'),{type:'bar',data:{labels:gk.map(t=>{var p=t.split('-');return p.length===3?(p[2]+'.'+p[1]):t;}),datasets:[{label:'rapor',data:gk.map(t=>byG[t]),backgroundColor:dgreen}]},options:{plugins:{legend:{display:false}},maintainAspectRatio:false,scales:{y:{beginAtZero:true,ticks:{precision:0}}}}});
+  // --- Kablo türüne göre çekim (metraj/%/adet sekmeli) ---
+  (function(){
+    function _catT(t){ t=(t||'').toLocaleUpperCase('tr').replace(/\s/g,''); if(t.indexOf('LIHCH')>=0)return 'kumanda'; if(t.indexOf('N2XH')>=0)return 'besleme'; if(t.indexOf('CAT')>=0)return 'data'; var m=t.match(/^(\d+)X/); if(m)return (+m[1]>=3)?'besleme':'kumanda'; return 'besleme'; }
+    var turK={besleme:{mt:0,adet:0},kumanda:{mt:0,adet:0},data:{mt:0,adet:0}};
+    function turSay(o){ var b=(o.besleme&&o.besleme.kablolar)||[]; b.forEach(function(k){ if((k.durum||'bekliyor')!=='cekildi')return; var c=_catT(k.tip); if(!turK[c])turK[c]={mt:0,adet:0}; turK[c].mt+=(parseInt(String(k.mt||'').replace(/[^0-9]/g,''))||0); turK[c].adet+=(parseInt(k.adet,10)||1); }); }
+    panos.forEach(turSay); dbs.forEach(turSay);
+    var keys=['besleme','kumanda','data'], labels=['Besleme/Güç · N2XH','Kumanda · LIHCH','Data · CAT6'], colors=[dgreen,amber,blue];
+    var mtA=keys.map(function(k){return turK[k].mt;}), adA=keys.map(function(k){return turK[k].adet;});
+    var tot=mtA.reduce(function(a,b){return a+b;},0)||1, totAd=adA.reduce(function(a,b){return a+b;},0)||1;
+    var yzA=mtA.map(function(v){return Math.round(v/tot*100);});
+    document.getElementById('turOzet').innerHTML='Toplam çekilen kablo: <b style="color:#2dd4bf">'+tot.toLocaleString('tr-TR')+' m</b> · '+totAd+' kalem &nbsp;|&nbsp; '+keys.map(function(k,i){return labels[i].split(' · ')[0]+': <b>'+turK[k].mt.toLocaleString('tr-TR')+'m</b> (%'+yzA[i]+', '+turK[k].adet+' kalem)';}).join(' &nbsp;·&nbsp; ');
+    var turChart=null;
+    function renderTur(mode){ var d=(mode==='adet')?adA:(mode==='yuzde'?yzA:mtA); var birim=(mode==='metraj')?' m':(mode==='yuzde'?' %':' kalem'); if(turChart)turChart.destroy(); turChart=new Chart(document.getElementById('cTur'),{type:'bar',data:{labels:labels,datasets:[{data:d,backgroundColor:colors,borderRadius:7,barThickness:64}]},options:{plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return c.raw+birim;}}}},maintainAspectRatio:false,scales:{y:{beginAtZero:true,ticks:{precision:0,callback:function(v){return v+(mode==='yuzde'?'%':'');}}},x:{ticks:{font:{size:11}}}}}}); }
+    renderTur('metraj');
+    document.querySelectorAll('#turTabs .turtab').forEach(function(b){ b.onclick=function(){ document.querySelectorAll('#turTabs .turtab').forEach(function(x){x.classList.remove('active');}); b.classList.add('active'); renderTur(b.getAttribute('data-m')); }; });
+  })();
 
   // ---- mahal ilerleme (PAFTA ile AYNI: montaj + besleme + TUM plan linyeleri) ----
   function nodeBul(t,k){
