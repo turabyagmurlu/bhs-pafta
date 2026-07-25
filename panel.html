@@ -8,8 +8,14 @@ body{font-family:'Segoe UI',system-ui,Arial,sans-serif;background:#0b1722;color:
 .hero h1{font-size:23px} .hero p{opacity:.9;font-size:13px;margin-top:4px}
 .hero:after{content:"📊";position:absolute;right:20px;top:-6px;font-size:90px;opacity:.12}
 .gen{display:flex;align-items:center;gap:14px;margin-top:14px}
-.genbar{flex:1;height:16px;background:rgba(0,0,0,.3);border-radius:10px;overflow:hidden}
-.genbar>div{height:100%;background:linear-gradient(90deg,#2dd4bf,#5eead4);border-radius:10px}
+.genbar{flex:1;height:16px;background:rgba(0,0,0,.3);border-radius:10px;overflow:hidden;display:flex}
+.genbar>div{height:100%;background:linear-gradient(90deg,#2dd4bf,#5eead4)}
+.genbar>div:first-child{border-radius:10px 0 0 10px}
+.genbar>div#genprim{background:linear-gradient(90deg,#ffd60a,#ffb300);border-radius:0 10px 10px 0;box-shadow:0 0 10px rgba(255,214,10,.55)}
+.genlegend{font-size:11px;color:#9fb6c6;margin-top:6px;display:flex;gap:14px;flex-wrap:wrap}
+.genlegend i{font-style:normal;display:inline-flex;align-items:center;gap:5px}
+.genlegend b{font-weight:700;color:#cfe3ef}
+.swb{width:10px;height:10px;border-radius:3px;display:inline-block}
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:16px 0}
 .kpi{background:#13212f;border:1px solid #20364a;border-radius:14px;padding:14px 16px}
 .kpi b{font-size:26px;display:block;color:#5eead4} .kpi span{font-size:12px;color:#9fb6c6}
@@ -54,7 +60,8 @@ th{color:#7c93a5;font-weight:600} td{color:#dde}
 <div class="wrap" id="panel" style="display:none">
   <div class="hero"><h1>BHS Hillside Bodrum — İlerleme Panosu</h1>
     <p>Elektrik/peyzaj saha imalat durumu · <span id="zaman"></span> · <span class="yenile" onclick="location.reload()">↻ yenile</span></p>
-    <div class="gen"><div class="genbar"><div id="genbar"></div></div><b id="genpct" style="font-size:22px;color:#fff"></b></div>
+    <div class="gen"><div class="genbar"><div id="genbar"></div><div id="genprim"></div></div><b id="genpct" style="font-size:22px;color:#fff"></b></div>
+    <div class="genlegend" id="genlegend"></div>
   </div>
   <div class="kpis" id="kpis"></div>
   <div class="card" id="anomCard" style="display:none;border:1px solid #ff6b6b;background:#241414"><h3 style="color:#ff8a8a">⚠ Anomaliler — kontrol gerekiyor</h3><div id="anomList"></div></div>
@@ -154,13 +161,41 @@ async function yukle(){
   var _montajR=(dbs.length+capCount)?(dbMontaj+capMontaj)/(dbs.length+capCount):0;
   var _linR=linPlanTop?linPlanYap/linPlanTop:0;
   var _besR=besPlanTop?besPlanYap/besPlanTop:0;
-  var genel=Math.round((0.35*_montajR+0.40*_linR+0.25*_besR)*100);
-  document.getElementById('genbar').style.width=genel+'%';
+  var _temel=(0.35*_montajR+0.40*_linR+0.25*_besR)*100;
+  // ---- BITMIS NOKTA (yildiz/elmas) + TAMAMLANMA PRIMI ----
+  // Bir dugum "bitmis" = montajli VE plandaki tum linye+besleme cekilmis (paftada * / <> sembolu).
+  // Plani olmayan dugumler (kablo kalemi tanimsiz) paydaya girmez - hic bitemezler.
+  function _bitmis(o,tip){
+    if(!o.montaj) return 0;
+    var top=0,yap=0;
+    _beklLin(o,tip).forEach(function(x){ var l=(o.linye&&o.linye[x])||{}; var s=l.durum||'bekliyor'; if(_out(s))return; top++; if(s==='cekildi')yap++; });
+    var bk=(o.besleme&&Array.isArray(o.besleme.kablolar))?o.besleme.kablolar:null;
+    if(!bk){var key=tip==='db'?String(o.id).padStart(2,'0'):o.kod; var bd=(typeof BESLEME!=='undefined')?BESLEME[key]:null; bk=bd?bd.kablolar.map(function(){return{durum:'bekliyor'};}):[];}
+    bk.forEach(function(k){ var s=k.durum||'bekliyor'; if(_out(s))return; top++; if(s==='cekildi')yap++; });
+    if(!top) return -1;            // plansiz dugum: paydanin disinda
+    return (yap===top)?1:0;
+  }
+  var bitDb=0,bitPano=0,planDb=0,planPano=0,plansiz=0;
+  dbs.forEach(function(o){ var r=_bitmis(o,'db'); if(r<0){plansiz++;return;} planDb++; if(r)bitDb++; });
+  panos.forEach(function(o){ var r=_bitmis(o,'pano'); if(r<0){plansiz++;return;} planPano++; if(r)bitPano++; });
+  var bitTop=bitDb+bitPano, planTop=planDb+planPano;
+  var _bitR=planTop?bitTop/planTop:0;
+  var PRIM=12;                                  // biten nokta primi (maks +12 puan)
+  var _prim=PRIM*_bitR;
+  var genel=Math.min(100,Math.round(_temel+_prim));
+  var _tW=Math.min(100,Math.round(_temel)), _pW=Math.max(0,genel-_tW);
+  document.getElementById('genbar').style.width=_tW+'%';
+  document.getElementById('genprim').style.width=_pW+'%';
   document.getElementById('genpct').textContent='%'+genel;
+  document.getElementById('genlegend').innerHTML=
+    '<i><span class="swb" style="background:#2dd4bf"></span>Temel ilerleme <b>%'+_tW+'</b> <span style="opacity:.7">(montaj %'+Math.round(_montajR*100)+' · linye %'+Math.round(_linR*100)+' · besleme %'+Math.round(_besR*100)+')</span></i>'+
+    '<i><span class="swb" style="background:#ffd60a"></span>Tamamlanma primi <b>+'+_pW+'</b> <span style="opacity:.7">★'+bitDb+' DB · ◆'+bitPano+' pano bitti ('+bitTop+'/'+planTop+') · maks +'+PRIM+'</span></i>'+
+    (plansiz?'<i style="opacity:.65">'+plansiz+' düğüm kablo planı olmadığı için hesap dışı</i>':'');
 
   // ---- KPI ----
   var kpis=[
-    ['Genel tamamlanma','%'+genel,'montaj+linye+besleme'],
+    ['Genel tamamlanma','%'+genel,'temel %'+_tW+' + prim +'+_pW],
+    ['Biten nokta ★◆',bitTop+'/'+planTop,'★'+bitDb+' DB · ◆'+bitPano+' pano (montaj+tüm kablo)'],
     ['DB montaj','%'+pct(dbMontaj,dbs.length),dbMontaj+'/'+dbs.length],
     ['DB kablo','%'+dbKabPct,dbKabTam+'/'+dbs.length+' tam'],
     ['Kablo imalatı olan DB',dbBaslayan+'/'+dbs.length,'linye veya besleme başlamış'],
