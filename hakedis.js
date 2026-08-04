@@ -959,9 +959,8 @@ function _mahalRaporExcel(){
     var t1=t0+2+Math.max(1,r.eksik.length)+2;
     ws.mergeCells(t1-1,2,t1-1,9); var th2=ws.getCell(t1-1,2);
     th2.value='KABLO KALEMİ DÖKÜMÜ — mahaldeki tüm noktalar, tek tek'; th2.font=ft(11,true,INK);
-    ['Nokta','Kalem (kesit / linye kodu)','Tür','Adet','Metraj (m)','Durum','','Not',''].forEach(function(h,j){
-      if(!h)return; var c=ws.getCell(t1,j+1); c.value=h; c.font=ft(9.5,true,'FFFFFFFF'); c.fill=fl(TEAL2); c.alignment=CEN; c.border={top:MED,bottom:MED,left:THIN,right:THIN}; });
-    ws.getCell(t1,1).value=''; ws.getCell(t1,1).fill=fl(TEAL2);
+    ['','Nokta','Kalem (kesit / linye kodu)','Tür','Adet','Metraj (m)','Durum','','Not'].forEach(function(h,j){
+      var c=ws.getCell(t1,j+1); c.value=h||null; c.font=ft(9.5,true,'FFFFFFFF'); c.fill=fl(TEAL2); c.alignment=CEN; c.border={top:MED,bottom:MED,left:THIN,right:THIN}; });
     ws.getRow(t1).height=22;
     var rr2=t1+1, zi=0;
     uyeAd.forEach(function(ad){
