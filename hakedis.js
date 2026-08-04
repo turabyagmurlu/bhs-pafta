@@ -820,3 +820,183 @@ async function excelIndir(){
   setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},1500);
   toast('✓ Hakediş dosyası indirildi (15 sayfa)');
 }
+
+
+/* ===== MAHAL RAPORU v2 — pano durumunu KABLO KALEMİ seviyesinde gösterir =====
+   index.html icindeki _mahalRaporExcel'i override eder. */
+function _mrNode(ad){
+  var s=String(ad||'').trim();
+  var m=s.match(/^DB[\s\-_]?0*(\d+)$/i);
+  if(m){ var n=parseInt(m[1],10);
+    for(var i=0;i<(data.dbs||[]).length;i++){ if(parseInt(data.dbs[i].id,10)===n) return {o:data.dbs[i],tip:'db'}; } return null; }
+  for(var j=0;j<(data.panos||[]).length;j++){ if(data.panos[j].kod===s) return {o:data.panos[j],tip:'pano'}; }
+  return null;
+}
+function _mrKalemler(nd){
+  if(!nd) return [];
+  var o=nd.o, tip=nd.tip, out=[];
+  var bk=(o.besleme&&Array.isArray(o.besleme.kablolar))?o.besleme.kablolar:null;
+  if(!bk){ var key=(tip==='db')?String(o.id).padStart(2,'0'):o.kod;
+    var bd=(typeof BESLEME!=='undefined')?BESLEME[key]:null;
+    bk=bd?bd.kablolar.map(function(k){return {tip:k.tip,adet:k.adet,durum:'bekliyor',mt:''};}):[]; }
+  bk.forEach(function(k){
+    var kat=(typeof _hkKat==='function')?_hkKat(k.tip):'GUC';
+    out.push({kalem:(k.tip||'(kesit girilmemiş)'),tur:(kat==='DATA'?'Data':(kat==='KUMANDA'?'Kumanda':'Besleme')),
+      adet:(parseInt(k.adet||1,10)||1),mt:(parseFloat(String(k.mt||0).replace(',','.'))||0),durum:(k.durum||'bekliyor')});});
+  var hat=[];
+  if(tip==='db'){ var hb=(typeof HATLAR!=='undefined')?HATLAR[String(o.id).padStart(2,'0')]:null; if(hb)hat=hb.hatlar.slice(); }
+  else { if(typeof PANO_LINYE!=='undefined'&&PANO_LINYE[o.kod])hat=PANO_LINYE[o.kod].map(function(x){return x.l;}); }
+  var giz=o.gizliLinye||[]; hat=hat.filter(function(h){return giz.indexOf(h)<0;});
+  (o.ekLinye||[]).forEach(function(h){ if(hat.indexOf(h)<0)hat.push(h); });
+  Object.keys(o.linye||{}).forEach(function(h){ if(hat.indexOf(h)<0)hat.push(h); });
+  hat.forEach(function(h){ var l=(o.linye&&o.linye[h])||{};
+    out.push({kalem:h,tur:'Linye',adet:1,mt:(parseFloat(String(l.mt||0).replace(',','.'))||0),durum:(l.durum||'bekliyor')});});
+  return out;
+}
+function _mrOzet(kal){
+  var s={besC:0,besT:0,linC:0,linT:0,eksik:[]};
+  kal.forEach(function(k){
+    if(k.durum==='revize'||k.durum==='birlesti')return;
+    if(k.tur==='Linye'){ s.linT++; if(k.durum==='cekildi')s.linC++; else s.eksik.push(k.kalem); }
+    else { s.besT++; if(k.durum==='cekildi')s.besC++; else s.eksik.push((k.adet>1?k.adet+'× ':'')+k.kalem); }});
+  return s;
+}
+function _mahalRaporExcel(){
+  var E=window.ExcelJS, wb=new E.Workbook(), t=new Date(), tarih=t.toLocaleDateString('tr-TR');
+  var NAVY='FF12303F',TEAL='FF0F766E',TEAL2='FF155E75',MONTAJ='FFE53935',YOK='FFB23A26',YARIM='FFE8821E',
+      TAMAM='FF1E9E5A',GRAY='FF9AA7B3',CARD='FFF4F7FA',LINE='FFD8E0E8',INK='FF1C2733',MUT='FF647585',
+      YESF='FFE6F4EA',KIRF='FFFDE7E6',SARF='FFFCEFE0',ZEB='FFF7FAFC';
+  function fl(a){return {type:'pattern',pattern:'solid',fgColor:{argb:a}};}
+  function ft(sz,b,c){return {name:'Arial',size:sz,bold:!!b,color:{argb:c||INK}};}
+  var THIN={style:'thin',color:{argb:LINE}}, MED={style:'medium',color:{argb:'FFB9C6D2'}};
+  function bd(){return {top:THIN,bottom:THIN,left:THIN,right:THIN};}
+  var CEN={vertical:'middle',horizontal:'center',wrapText:true}, LFT={vertical:'middle',horizontal:'left',wrapText:true};
+  function tip(k){k=(k||'').toLocaleUpperCase('tr'); if(k.indexOf('DB')===0)return 'Driver Box'; if(k.indexOf('ÇAP')>=0)return 'ÇAP panosu'; if(k.indexOf('-HK')>=0)return 'HK panosu'; if(k.indexOf('-HP')>=0)return 'HP panosu'; return 'Pano';}
+  function dc(n){return n==='montaj yok'?MONTAJ:(n==='kablo yok'?YOK:(n==='kablo yarım'?YARIM:GRAY));}
+  function tc(pv){return pv>=80?TEAL:(pv>=50?'FFB35E00':'FFB3261E');}
+  var rows=data.mahaller.map(function(m){ var d=mahalDurum(m);
+    return {ad:m.ad||'?', yuzde:d.yuzde, biten:d.biten, toplam:d.toplam, eksik:(d.eksik||[]).slice(), uyeler:(m.uyeler||[]).slice()}; });
+  function cnt(r,n){return r.eksik.filter(function(e){return e.neden===n;}).length;}
+  var totN=rows.reduce(function(a,r){return a+r.toplam;},0), totE=rows.reduce(function(a,r){return a+r.eksik.length;},0), totB=totN-totE;
+  var bitenM=rows.filter(function(r){return r.eksik.length===0;}).length;
+  var avg=Math.round(rows.reduce(function(a,r){return a+r.yuzde;},0)/(rows.length||1));
+  function kpi(ws,c1,c2,row,lab,val,sub,clr){ ws.mergeCells(row,c1,row,c2); ws.mergeCells(row+1,c1,row+1,c2); ws.mergeCells(row+2,c1,row+2,c2);
+    var A=ws.getCell(row,c1);A.value=lab;A.font=ft(9,true,'FFFFFFFF');A.fill=fl(clr);A.alignment=CEN;
+    var B=ws.getCell(row+1,c1);B.value=val;B.font=ft(18,true,clr);B.alignment=CEN;B.fill=fl(CARD);
+    var D=ws.getCell(row+2,c1);D.value=sub;D.font=ft(8.5,false,MUT);D.alignment=CEN;D.fill=fl(CARD); }
+
+  /* ---- ÖZET ---- */
+  var ov=wb.addWorksheet('ÖZET',{views:[{showGridLines:false}]});
+  [4,30,12,14,10,12,12,13].forEach(function(w,i){ov.getColumn(i+1).width=w;});
+  ov.mergeCells('A1:H1'); var a1=ov.getCell('A1'); a1.value='BHS HILLSIDE BODRUM — SAHA MAHAL DURUMU'; a1.font=ft(18,true,'FFFFFFFF'); a1.fill=fl(NAVY); a1.alignment={vertical:'middle',horizontal:'left',indent:1}; ov.getRow(1).height=40;
+  ov.mergeCells('A2:H2'); var a2=ov.getCell('A2'); a2.value='Peyzaj Elektrik İmalat İlerlemesi · Rapor tarihi: '+tarih+' · Kaynak: BHS pafta (canlı)'; a2.font=ft(10.5,false,MUT); a2.alignment={horizontal:'left',indent:1}; ov.getRow(2).height=20;
+  kpi(ov,1,2,4,'MAHAL',bitenM+' / '+rows.length,'biten mahal',TEAL2);
+  kpi(ov,3,4,4,'NOKTA',totB+'/'+totN,'biten nokta',TEAL);
+  kpi(ov,5,6,4,'ORT. İLERLEME','%'+avg,'mahal ort.','FFB35E00');
+  kpi(ov,7,8,4,'EKSİK',''+totE,'işi kalan',MONTAJ);
+  ov.getRow(4).height=16; ov.getRow(5).height=30; ov.getRow(6).height=15;
+  ['#','Mahal','İlerleme','Biten/Toplam','Eksik','Montaj yok','Kablo yok','Kablo yarım'].forEach(function(h,j){ var c=ov.getCell(8,j+1); c.value=h; c.font=ft(10,true,'FFFFFFFF'); c.fill=fl(TEAL2); c.alignment=CEN; c.border={top:MED,bottom:MED,left:THIN,right:THIN}; }); ov.getRow(8).height=26;
+  rows.forEach(function(r,i){ var rr=9+i; var my=cnt(r,'montaj yok'),ky=cnt(r,'kablo yok'),kr=cnt(r,'kablo yarım');
+    [i+1, r.ad, r.yuzde/100, r.biten+'/'+r.toplam, r.eksik.length, my, ky, kr].forEach(function(v,j){ var c=ov.getCell(rr,j+1); c.value=v; c.border=bd(); c.alignment=(j===1?LFT:CEN);
+      if(j===0)c.font=ft(10,true,MUT); else if(j===1)c.font=ft(10.5,true,INK); else if(j===2){c.numFmt='0%';c.font=ft(10,true,tc(r.yuzde));} else c.font=ft(10,false,INK); });
+    if(my)ov.getCell(rr,6).fill=fl(KIRF); if(ky)ov.getCell(rr,7).fill=fl('FFF6E7E2'); if(kr)ov.getCell(rr,8).fill=fl(SARF); ov.getRow(rr).height=20; });
+  var trn=9+rows.length; ['','TOPLAM','',totB+'/'+totN,totE, rows.reduce(function(a,r){return a+cnt(r,'montaj yok');},0), rows.reduce(function(a,r){return a+cnt(r,'kablo yok');},0), rows.reduce(function(a,r){return a+cnt(r,'kablo yarım');},0)].forEach(function(v,j){ var c=ov.getCell(trn,j+1); c.value=v; c.font=ft(10,true,'FFFFFFFF'); c.fill=fl(NAVY); c.alignment=(j===1?LFT:CEN); c.border={top:MED,bottom:MED,left:THIN,right:THIN}; }); ov.getRow(trn).height=22;
+
+  /* ---- MAHAL SAYFALARI ---- */
+  rows.forEach(function(r){
+    var nm=(r.ad||'Mahal').replace(/[\/\\?*:\[\]]/g,'-').slice(0,31);
+    var ws=wb.addWorksheet(nm,{views:[{showGridLines:false}]});
+    [4,17,24,15,13,12,12,14,34].forEach(function(w,i){ws.getColumn(i+1).width=w;});
+    ws.pageSetup={paperSize:9,orientation:'landscape',fitToPage:true,fitToWidth:1,fitToHeight:0};
+    var my=cnt(r,'montaj yok'),ky=cnt(r,'kablo yok'),kr=cnt(r,'kablo yarım'), t2=tc(r.yuzde);
+    ws.mergeCells('A1:I1'); var h1=ws.getCell('A1'); h1.value=r.ad; h1.font=ft(16,true,'FFFFFFFF'); h1.fill=fl(t2); h1.alignment={vertical:'middle',horizontal:'left',indent:1}; ws.getRow(1).height=36;
+    ws.mergeCells('A2:I2'); var h2=ws.getCell('A2'); h2.value='Peyzaj Elektrik Saha İmalat Durumu · '+tarih+'  ·  '+(r.eksik.length===0?'TAMAMLANDI':'Devam ediyor'); h2.font=ft(10.5,false,MUT); h2.alignment={horizontal:'left',indent:1}; ws.getRow(2).height=20;
+    kpi(ws,2,3,4,'TAMAMLANMA','%'+r.yuzde,'montaj+kablo',t2);
+    kpi(ws,4,4,4,'BİTEN NOKTA',r.biten+'/'+r.toplam,'tamamlanan',TEAL);
+    function scard(col,lab,val,clr){ var A=ws.getCell(4,col);A.value=lab;A.font=ft(8,true,'FFFFFFFF');A.fill=fl(clr);A.alignment=CEN;
+      var B=ws.getCell(5,col);B.value=val;B.font=ft(18,true,clr);B.alignment=CEN;B.fill=fl(CARD);
+      var D=ws.getCell(6,col);D.value='eksik';D.font=ft(8,false,MUT);D.alignment=CEN;D.fill=fl(CARD); }
+    scard(6,'MONTAJ YOK',my,MONTAJ); scard(7,'KABLO YOK',ky,YOK); scard(8,'KABLO YARIM',kr,YARIM);
+    ws.getRow(4).height=16; ws.getRow(5).height=28; ws.getRow(6).height=15;
+    /* mahal geneli kablo sayacı */
+    var mTop={besC:0,besT:0,linC:0,linT:0};
+    var uyeAd=(r.uyeler||[]).map(function(u){return (u.t==='db')?('DB '+String(u.k).padStart(2,'0')):String(u.k);});
+    var nodeKal={};
+    uyeAd.forEach(function(ad){ var nd=_mrNode(ad); var kal=_mrKalemler(nd); nodeKal[ad]=kal;
+      var s=_mrOzet(kal); mTop.besC+=s.besC; mTop.besT+=s.besT; mTop.linC+=s.linC; mTop.linT+=s.linT; });
+    var kc=ws.getCell(4,9); kc.value='KABLO DURUMU'; kc.font=ft(8,true,'FFFFFFFF'); kc.fill=fl(TEAL2); kc.alignment=CEN;
+    var kv=ws.getCell(5,9); kv.value='Besleme '+mTop.besC+'/'+mTop.besT+'   ·   Linye '+mTop.linC+'/'+mTop.linT;
+    kv.font=ft(11,true,TEAL2); kv.alignment=CEN; kv.fill=fl(CARD);
+    var kd=ws.getCell(6,9); kd.value='çekilen / toplam kalem'; kd.font=ft(8,false,MUT); kd.alignment=CEN; kd.fill=fl(CARD);
+    ws.getCell(8,2).value='İlerleme çubuğu'; ws.getCell(8,2).font=ft(9,true,MUT);
+    var seg=Math.round(r.yuzde/10);
+    for(var g=0;g<10;g++){ var cc=ws.getCell(9,2+g); cc.value=(g===0?('%'+r.yuzde):''); cc.font=ft(9,true,'FFFFFFFF'); cc.alignment=CEN; cc.fill=fl(g<seg?t2:'FFE3E9EF'); cc.border={top:THIN,bottom:THIN,left:{style:'thin',color:{argb:'FFFFFFFF'}},right:{style:'thin',color:{argb:'FFFFFFFF'}}}; }
+    ws.getRow(9).height=18;
+
+    /* ---- TABLO 1: EKSİK NOKTALAR (kablo kırılımlı) ---- */
+    var t0=12; ws.mergeCells(t0-1,2,t0-1,9); var th=ws.getCell(t0-1,2);
+    th.value='EKSİK NOKTALAR ('+r.eksik.length+') — hangi kablo çekildi, hangisi kaldı'; th.font=ft(11,true,INK);
+    ['#','Nokta','Tip','Besleyen pano','Montaj','Besleme','Linye','Durum','Eksik kalemler (kesit / linye)'].forEach(function(h,j){
+      var c=ws.getCell(t0,j+1); c.value=h; c.font=ft(9.5,true,'FFFFFFFF'); c.fill=fl(NAVY); c.alignment=CEN; c.border={top:MED,bottom:MED,left:THIN,right:THIN}; });
+    ws.getRow(t0).height=24;
+    if(!r.eksik.length){ ws.mergeCells(t0+1,1,t0+1,9); var ec=ws.getCell(t0+1,1); ec.value='Tüm noktalar tamamlandı — eksik yok'; ec.font=ft(11,true,TAMAM); ec.alignment=CEN; ec.fill=fl(YESF); ws.getRow(t0+1).height=22; }
+    r.eksik.forEach(function(e,i){ var rr=t0+1+i, nd=_mrNode(e.ad), kal=nodeKal[e.ad]||_mrKalemler(nd), s=_mrOzet(kal);
+      var mont=nd&&nd.o.montaj;
+      var ekstr=s.eksik.slice(0,6).join(' · ')+(s.eksik.length>6?(' +'+(s.eksik.length-6)):'');
+      var vals=[i+1,e.ad,tip(e.ad),(nd&&nd.o.besleme&&nd.o.besleme.kaynak)||'—',(mont?'VAR':'YOK'),
+        s.besC+' / '+s.besT, s.linC+' / '+s.linT, (e.neden||'').toLocaleUpperCase('tr'), (ekstr||'—')];
+      vals.forEach(function(v,j){ var c=ws.getCell(rr,j+1); c.value=v; c.border=bd();
+        c.alignment=(j===1||j===2||j===3||j===8)?LFT:CEN;
+        c.font=(j===1)?ft(10.5,true,INK):ft(9.5,false,(j===8?MUT:INK));
+        if(i%2)c.fill=fl(ZEB); });
+      ws.getCell(rr,5).fill=fl(mont?YESF:KIRF); ws.getCell(rr,5).font=ft(9.5,true,mont?TAMAM:MONTAJ);
+      ws.getCell(rr,6).fill=fl(s.besC>=s.besT?YESF:(s.besC>0?SARF:KIRF));
+      ws.getCell(rr,7).fill=fl(s.linC>=s.linT?YESF:(s.linC>0?SARF:KIRF));
+      var c8=ws.getCell(rr,8); c8.font=ft(9.5,true,'FFFFFFFF'); c8.fill=fl(dc(e.neden));
+      ws.getRow(rr).height=19; });
+
+    /* ---- TABLO 2: KALEM KALEM DÖKÜM (tüm noktalar) ---- */
+    var t1=t0+2+Math.max(1,r.eksik.length)+2;
+    ws.mergeCells(t1-1,2,t1-1,9); var th2=ws.getCell(t1-1,2);
+    th2.value='KABLO KALEMİ DÖKÜMÜ — mahaldeki tüm noktalar, tek tek'; th2.font=ft(11,true,INK);
+    ['Nokta','Kalem (kesit / linye kodu)','Tür','Adet','Metraj (m)','Durum','','Not',''].forEach(function(h,j){
+      if(!h)return; var c=ws.getCell(t1,j+1); c.value=h; c.font=ft(9.5,true,'FFFFFFFF'); c.fill=fl(TEAL2); c.alignment=CEN; c.border={top:MED,bottom:MED,left:THIN,right:THIN}; });
+    ws.getCell(t1,1).value=''; ws.getCell(t1,1).fill=fl(TEAL2);
+    ws.getRow(t1).height=22;
+    var rr2=t1+1, zi=0;
+    uyeAd.forEach(function(ad){
+      var kal=nodeKal[ad]||[], nd=_mrNode(ad), mont=nd&&nd.o.montaj;
+      var bas=ws.getCell(rr2,1); bas.value='';
+      ws.mergeCells(rr2,1,rr2,9);
+      var hc=ws.getCell(rr2,1); hc.value='   '+ad+'   ·   '+tip(ad)+'   ·   montaj: '+(mont?'VAR':'YOK')+'   ·   kaynak: '+((nd&&nd.o.besleme&&nd.o.besleme.kaynak)||'—');
+      hc.font=ft(10,true,'FFFFFFFF'); hc.fill=fl(mont?'FF2F5D6E':'FF8E3B2E'); hc.alignment=LFT; ws.getRow(rr2).height=18; rr2++;
+      if(!kal.length){ ws.mergeCells(rr2,1,rr2,9); var nc=ws.getCell(rr2,1); nc.value='   (bu noktada tanımlı kablo/linye kalemi yok)'; nc.font=ft(9,false,MUT); nc.alignment=LFT; ws.getRow(rr2).height=16; rr2++; return; }
+      kal.forEach(function(k){
+        var cek=(k.durum==='cekildi'), rev=(k.durum==='revize'||k.durum==='birlesti');
+        var dur=cek?'ÇEKİLDİ':(rev?(k.durum==='revize'?'REVİZE':'BİRLEŞTİ'):'BEKLİYOR');
+        var vals=['',ad,k.kalem,k.tur,(k.tur==='Linye'?'':k.adet),(cek&&k.mt?k.mt:''),dur,'',
+          (cek?(k.mt?'':'metraj girilmemiş'):(rev?'metraja dahil değil':'yapılacak'))];
+        vals.forEach(function(v,j){ var c=ws.getCell(rr2,j+1); c.value=(v===''?null:v); c.border=bd();
+          c.alignment=(j===1||j===2||j===3)?LFT:CEN; c.font=ft(9.5,false,INK);
+          if(zi%2)c.fill=fl(ZEB); });
+        ws.getCell(rr2,6).numFmt='#,##0" m"';
+        var dcell=ws.getCell(rr2,7); dcell.font=ft(9,true,'FFFFFFFF');
+        dcell.fill=fl(cek?TAMAM:(rev?GRAY:MONTAJ));
+        if(!cek&&!rev)ws.getCell(rr2,3).font=ft(9.5,true,MONTAJ);
+        ws.getCell(rr2,9).font=ft(8.5,false,MUT);
+        ws.getRow(rr2).height=17; rr2++; zi++; });
+      var s=_mrOzet(kal);
+      ws.mergeCells(rr2,1,rr2,5); var sc=ws.getCell(rr2,1);
+      sc.value='   '+ad+' ara toplam:  Besleme '+s.besC+'/'+s.besT+'  ·  Linye '+s.linC+'/'+s.linT;
+      sc.font=ft(9,true,MUT); sc.alignment=LFT; sc.fill=fl(CARD);
+      for(var q=6;q<=9;q++)ws.getCell(rr2,q).fill=fl(CARD);
+      ws.getRow(rr2).height=16; rr2+=2; zi=0; });
+    var lg=rr2+1; ws.getCell(lg,2).value='Renk anlamı:'; ws.getCell(lg,2).font=ft(9,true,MUT);
+    [['ÇEKİLDİ — imalat yapıldı',TAMAM],['BEKLİYOR — yapılacak',MONTAJ],['REVİZE / BİRLEŞTİ — metraja girmez',GRAY],['Montaj yok',MONTAJ],['Kablo yarım',YARIM]].forEach(function(pr,k){
+      var cc=ws.getCell(lg+1+k,2); cc.value=' '; cc.fill=fl(pr[1]); ws.getCell(lg+1+k,3).value=pr[0]; ws.getCell(lg+1+k,3).font=ft(9,false,INK); });
+  });
+  wb.xlsx.writeBuffer().then(function(buf){ var blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    var url=URL.createObjectURL(blob); var a=document.createElement('a'); a.href=url;
+    a.download='BHS_Mahal_Durumu_'+t.toISOString().slice(0,10)+'.xlsx'; document.body.appendChild(a); a.click();
+    setTimeout(function(){URL.revokeObjectURL(url);a.remove();},1000); try{toast('✅ Mahal raporu indirildi (kablo kalemli)');}catch(e){} });
+}
