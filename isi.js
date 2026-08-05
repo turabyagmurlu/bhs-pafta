@@ -114,6 +114,8 @@
       'border-color:#c084fc !important;' +
       'box-shadow:0 0 0 2px #fff,0 0 11px 3px rgba(168,85,247,.9) !important;' +
       'animation:none !important}' +
+      /* paftanın eski yüzen ısı şeridi — içeriği artık ana lejantta */
+      '#isiLejant{display:none !important}' +
       /* katlanır lejant */
       '#lejant{padding:0 !important;overflow:hidden}' +
       '#lejantBas{display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;' +
