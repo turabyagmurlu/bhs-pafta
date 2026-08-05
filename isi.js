@@ -114,7 +114,7 @@
     s.textContent =
       '.isiAcik .mk.m0{box-shadow:0 0 0 3px #a855f7,0 0 10px 2px rgba(168,85,247,.75) !important;' +
       'border-color:#c084fc !important}' +
-      '#bhsIsiLejant{position:fixed;left:12px;bottom:64px;z-index:9997;background:rgba(10,20,28,.92);' +
+      '#bhsIsiLejant{position:fixed;right:12px;bottom:120px;z-index:9997;background:rgba(10,20,28,.94);' +
       'border:1px solid #2b3f4d;border-radius:10px;padding:10px 12px;font:11px/1.5 system-ui;color:#dce8f0;' +
       'box-shadow:0 8px 24px rgba(0,0,0,.45)}' +
       '#bhsIsiLejant b{display:block;font-size:11px;margin-bottom:6px;color:#9fd2ea;letter-spacing:.3px}' +
