@@ -132,6 +132,41 @@
     document.head.appendChild(s);
   }
 
+  /* ---------- her noktaya kendi rengiyle halka ----------
+     Komşu noktaların ışıması bir noktanın kendi durumunu örtüyordu
+     (ör. DB-17 %10 iken çevresi yeşil olduğu için yeşil görünüyordu).
+     Bu halka, noktanın kendi kablo oranını komşulardan bağımsız gösterir. */
+  function halkaCiz() {
+    var k = document.getElementById('isiKat');
+    if (!k || !k.getContext) return;
+    var g = getComputedStyle(k);
+    if (g.display === 'none' || g.visibility === 'hidden') return;
+    var ctx = k.getContext('2d');
+    if (!ctx) return;
+    var liste = [];
+    try {
+      (data.dbs || []).forEach(function (o) { liste.push([o, 'db']); });
+      (data.panos || []).forEach(function (o) { liste.push([o, 'pano']); });
+    } catch (e) { return; }
+    ctx.save();
+    liste.forEach(function (p) {
+      var o = p[0];
+      if (typeof o.x !== 'number' || typeof o.y !== 'number') return;
+      var c = window._isiRenk(oran(o, p[1]));
+      var x = o.x * k.width, y = o.y * k.height;
+      var r = (p[1] === 'db') ? 18 : 20;
+      ctx.beginPath(); ctx.arc(x, y, r, 0, 6.2832);
+      ctx.lineWidth = 8;
+      ctx.strokeStyle = 'hsla(' + c[0] + ',' + c[1] + '%,' + c[2] + '%,0.96)';
+      ctx.stroke();
+      ctx.beginPath(); ctx.arc(x, y, r + 4.5, 0, 6.2832);
+      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = 'rgba(8,16,22,.55)';
+      ctx.stroke();
+    });
+    ctx.restore();
+  }
+
   /* ---------- lejantı katlanır yap + ısı bölümünü içine ekle ---------- */
   function lejantKur() {
     var l = document.getElementById('lejant');
@@ -141,6 +176,14 @@
     var ic = document.createElement('div');
     ic.id = 'lejantIc';
     while (l.firstChild) ic.appendChild(l.firstChild);
+
+    /* paftanın kendi "Lejant" başlığı artık üstteki katlama başlığıyla çakışıyor */
+    var ilk = ic.firstElementChild;
+    if (ilk && ilk.tagName === 'B' && /lejant/i.test(ilk.textContent || '')) {
+      var sonraki = ilk.nextElementSibling;
+      ilk.remove();
+      if (sonraki && sonraki.tagName === 'BR') sonraki.remove();
+    }
 
     var bas = document.createElement('div');
     bas.id = 'lejantBas';
@@ -162,7 +205,9 @@
       sat(0.8, '%61–99 · çoğu bitti') +
       sat(1, 'tamamlandı') +
       '<div class="sr"><i style="background:transparent;border:2px solid #c084fc;height:8px"></i>' +
-      'pano montaj kaydı yok</div>';
+      'pano montaj kaydı yok</div>' +
+      '<div class="sr" style="opacity:.72;font-size:10.5px;margin-top:5px">' +
+      'Her noktanın çevresindeki halka kendi oranıdır — komşu ışıması yanıltmaz.</div>';
     ic.appendChild(b);
 
     var acik = localStorage.getItem('bhsLejantAcik') === '1';
@@ -174,16 +219,18 @@
     l.dataset.bhsKuruldu = '1';
   }
 
-  /* pafta yeniden çizildiğinde lejant DOM'u yenilenirse tekrar kur */
+  /* ısı her çizildiğinde halkaları üstüne bas; lejantı da tazele */
   ['isiToggle', 'isiCiz'].forEach(function (ad) {
     if (typeof window[ad] !== 'function') return;
     var orj = window[ad];
     window[ad] = function () {
       var r = orj.apply(this, arguments);
-      setTimeout(lejantKur, 40);
+      try { halkaCiz(); } catch (e) {}
+      setTimeout(function () { try { halkaCiz(); } catch (e) {} lejantKur(); }, 60);
       return r;
     };
   });
+  window._bhsHalka = halkaCiz;
 
   function basla() { stil(); lejantKur(); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', basla);
