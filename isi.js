@@ -1,21 +1,19 @@
-/* BHS PAFTA — ISI HARİTASI RENK SKALASI v1 · 05.08.2026
+/* BHS PAFTA — ISI HARİTASI RENK SKALASI + LEJANT  v2 · 05.08.2026
  *
- * Eski davranış:
- *   puan = 0,30 × montaj + 0,70 × (yapılan kalem / plan kalem)
- *   renk rampası: 0→h2, 0,25→h46, 0,50→h58, 0,75→h69, 1→h152
- *   Sorun 1: %25 ile %75 arası hep aynı sarı tonda kalıyordu — ayırt edilemiyordu.
- *   Sorun 2: montaj kaydı yoksa puan 0'a düşüyor, çekilmiş kablolar görünmüyordu.
+ * v1'de olanlar:
+ *   - renk artık yalnız kablo ilerlemesine bakar (montaj rengi bozmuyor)
+ *   - skala açıldı: %0 kırmızı → %1-30 turuncu → %31-60 sarı → %61-99 açık yeşil → %100 yeşil
  *
- * Yeni davranış:
- *   renk = yalnızca kablo ilerlemesi (yapılan/plan), montaj rengi bozmuyor
- *   montaj kaydı olmayan nokta = mor halka (ısı haritası açıkken)
- *   skala: %0 kırmızı · %1-30 turuncu · %31-60 sarı · %61-99 açık yeşil · %100 koyu yeşil
+ * v2 değişiklikleri (Türab):
+ *   - ayrı yüzen ısı lejantı KALDIRILDI, içerik ana lejanta taşındı
+ *   - lejant artık katlanır: varsayılan KAPALI, başlıktan açılıp kapanır (tercih hatırlanır)
+ *   - montaj kaydı olmayan PANO artık kırmızı değil MOR kenarlıklı (yanıp sönme yok)
  *
  * index.html'e dokunmaz; _isiC ve _isiRenk fonksiyonlarını sarar.
  */
 (function () {
   if (window.__BHS_ISI) return;
-  window.__BHS_ISI = 1;
+  window.__BHS_ISI = 2;
 
   var DISLA = ['revize', 'birlesti'];   // hakedişte sayılmayan durumlar
 
@@ -71,7 +69,8 @@
   window._bhsIsiOran = oran;
 
   /* ---------- renk skalası ---------- */
-  /* Çapa noktaları: oran → [ton, doygunluk, açıklık]  (hsl) */
+  /* DİKKAT: orijinal _isiRenk [ton, doygunluk, açıklık] DİZİSİ döndürür,
+     çağıran taraf hsla(c[0],c[1]%,c[2]%,a) kuruyor. Aynı biçim korunmalı. */
   var CAPA = [
     [0.00,   2, 88, 47],   // kırmızı  — hiç çekilmemiş
     [0.30,  24, 92, 50],   // turuncu  — az başlanmış
@@ -83,8 +82,6 @@
 
   function ara(a, b, t) { return a + (b - a) * t; }
 
-  /* DİKKAT: orijinal _isiRenk [ton, doygunluk, açıklık] DİZİSİ döndürür,
-     çağıran taraf hsla(c[0],c[1]%,c[2]%,a) kuruyor. Aynı biçim korunmalı. */
   window._isiRenk = function (v) {
     v = (typeof v === 'number' && isFinite(v)) ? Math.max(0, Math.min(1, v)) : 0;
     if (v <= 0) return [CAPA[0][1], CAPA[0][2], CAPA[0][3]];
@@ -106,67 +103,89 @@
     return 'hsl(' + c[0] + ',' + c[1] + '%,' + c[2] + '%)';
   }
 
-  /* ---------- montaj kaydı olmayan nokta: mor halka ---------- */
+  /* ---------- stil: mor kenar + katlanır lejant ---------- */
   function stil() {
     if (document.getElementById('bhsIsiStil')) return;
     var s = document.createElement('style');
     s.id = 'bhsIsiStil';
     s.textContent =
-      '.isiAcik .mk.m0{box-shadow:0 0 0 3px #a855f7,0 0 10px 2px rgba(168,85,247,.75) !important;' +
-      'border-color:#c084fc !important}' +
-      '#bhsIsiLejant{position:fixed;right:12px;bottom:120px;z-index:9997;background:rgba(10,20,28,.94);' +
-      'border:1px solid #2b3f4d;border-radius:10px;padding:10px 12px;font:11px/1.5 system-ui;color:#dce8f0;' +
-      'box-shadow:0 8px 24px rgba(0,0,0,.45)}' +
-      '#bhsIsiLejant b{display:block;font-size:11px;margin-bottom:6px;color:#9fd2ea;letter-spacing:.3px}' +
-      '#bhsIsiLejant .sr{display:flex;align-items:center;gap:7px;margin:3px 0}' +
-      '#bhsIsiLejant i{width:22px;height:11px;border-radius:3px;display:inline-block}';
+      /* montaj kaydı olmayan PANO: mor kenar, yanıp sönme yok */
+      '.mk.pano.m0,.mk.pano.cap.m0,.mk.pano.hp.m0,.mk.pano.hk.m0{' +
+      'border-color:#c084fc !important;' +
+      'box-shadow:0 0 0 2px #fff,0 0 11px 3px rgba(168,85,247,.9) !important;' +
+      'animation:none !important}' +
+      /* katlanır lejant */
+      '#lejant{padding:0 !important;overflow:hidden}' +
+      '#lejantBas{display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;' +
+      'padding:8px 12px;font:600 12px system-ui;color:#cfe6f2;letter-spacing:.3px}' +
+      '#lejantBas:hover{color:#fff}' +
+      '#lejantOk{margin-left:auto;font-size:11px;opacity:.75;transition:transform .15s}' +
+      '#lejant.kapali #lejantOk{transform:rotate(-90deg)}' +
+      '#lejantIc{padding:2px 12px 12px}' +
+      '#lejant.kapali #lejantIc{display:none}' +
+      '#bhsIsiBolum{margin-top:10px;padding-top:9px;border-top:1px solid rgba(255,255,255,.14)}' +
+      '#bhsIsiBolum b{display:block;font-size:10.5px;letter-spacing:.4px;color:#9fd2ea;margin-bottom:5px}' +
+      '#bhsIsiBolum .sr{display:flex;align-items:center;gap:7px;margin:3px 0;font-size:11.5px}' +
+      '#bhsIsiBolum i{width:20px;height:10px;border-radius:3px;display:inline-block;flex:none}';
     document.head.appendChild(s);
   }
 
-  function lejant(goster) {
-    var v = document.getElementById('bhsIsiLejant');
-    if (!goster) { if (v) v.remove(); return; }
-    if (v) return;
+  /* ---------- lejantı katlanır yap + ısı bölümünü içine ekle ---------- */
+  function lejantKur() {
+    var l = document.getElementById('lejant');
+    if (!l || l.dataset.bhsKuruldu) return;
     stil();
+
+    var ic = document.createElement('div');
+    ic.id = 'lejantIc';
+    while (l.firstChild) ic.appendChild(l.firstChild);
+
+    var bas = document.createElement('div');
+    bas.id = 'lejantBas';
+    bas.innerHTML = '<span>☰ LEJANT</span><span id="lejantOk">▾</span>';
+
+    l.appendChild(bas);
+    l.appendChild(ic);
+
+    /* ısı skalası bölümü — ana lejantın içinde */
+    var b = document.createElement('div');
+    b.id = 'bhsIsiBolum';
     function sat(o, ad) {
       return '<div class="sr"><i style="background:' + hsl(o) + '"></i>' + ad + '</div>';
     }
-    var d = document.createElement('div');
-    d.id = 'bhsIsiLejant';
-    d.innerHTML = '<b>KABLO İLERLEMESİ</b>' +
+    b.innerHTML = '<b>ISI HARİTASI — KABLO İLERLEMESİ</b>' +
       sat(0, 'hiç çekilmemiş') +
       sat(0.2, '%1–30 · az başlanmış') +
       sat(0.45, '%31–60 · yarı yolda') +
       sat(0.8, '%61–99 · çoğu bitti') +
       sat(1, 'tamamlandı') +
-      '<div class="sr"><i style="background:transparent;box-shadow:0 0 0 2px #a855f7 inset"></i>montaj kaydı yok</div>';
-    document.body.appendChild(d);
+      '<div class="sr"><i style="background:transparent;border:2px solid #c084fc;height:8px"></i>' +
+      'pano montaj kaydı yok</div>';
+    ic.appendChild(b);
+
+    var acik = localStorage.getItem('bhsLejantAcik') === '1';
+    l.classList.toggle('kapali', !acik);
+    bas.onclick = function () {
+      var k = l.classList.toggle('kapali');
+      localStorage.setItem('bhsLejantAcik', k ? '0' : '1');
+    };
+    l.dataset.bhsKuruldu = '1';
   }
 
-  function isiAcikMi() {
-    var k = document.getElementById('isiKat');
-    if (!k) return false;
-    var g = window.getComputedStyle(k);
-    return g.display !== 'none' && g.visibility !== 'hidden' && parseFloat(g.opacity || '1') > 0.05;
-  }
-
-  function isaretle() {
-    stil();
-    var acik = isiAcikMi();
-    document.body.classList.toggle('isiAcik', acik);
-    lejant(acik);
-  }
-
-  /* isiToggle ve isiCiz sonrası halkayı/lejantı tazele */
+  /* pafta yeniden çizildiğinde lejant DOM'u yenilenirse tekrar kur */
   ['isiToggle', 'isiCiz'].forEach(function (ad) {
     if (typeof window[ad] !== 'function') return;
     var orj = window[ad];
     window[ad] = function () {
       var r = orj.apply(this, arguments);
-      setTimeout(isaretle, 30);
+      setTimeout(lejantKur, 40);
       return r;
     };
   });
 
-  setTimeout(isaretle, 1500);
+  function basla() { stil(); lejantKur(); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', basla);
+  else basla();
+  setTimeout(basla, 1200);
+  setTimeout(basla, 3500);
 })();
