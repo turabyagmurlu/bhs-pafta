@@ -83,21 +83,28 @@
 
   function ara(a, b, t) { return a + (b - a) * t; }
 
+  /* DİKKAT: orijinal _isiRenk [ton, doygunluk, açıklık] DİZİSİ döndürür,
+     çağıran taraf hsla(c[0],c[1]%,c[2]%,a) kuruyor. Aynı biçim korunmalı. */
   window._isiRenk = function (v) {
     v = (typeof v === 'number' && isFinite(v)) ? Math.max(0, Math.min(1, v)) : 0;
-    if (v <= 0) return CAPA[0][1] + ',' + CAPA[0][2] + ',' + CAPA[0][3];
-    if (v >= 1) return CAPA[5][1] + ',' + CAPA[5][2] + ',' + CAPA[5][3];
+    if (v <= 0) return [CAPA[0][1], CAPA[0][2], CAPA[0][3]];
+    if (v >= 1) return [CAPA[5][1], CAPA[5][2], CAPA[5][3]];
     for (var i = 0; i < CAPA.length - 1; i++) {
       var a = CAPA[i], b = CAPA[i + 1];
       if (v >= a[0] && v <= b[0]) {
         var t = (b[0] === a[0]) ? 0 : (v - a[0]) / (b[0] - a[0]);
-        return Math.round(ara(a[1], b[1], t)) + ',' +
-               Math.round(ara(a[2], b[2], t)) + ',' +
-               Math.round(ara(a[3], b[3], t));
+        return [Math.round(ara(a[1], b[1], t)),
+                Math.round(ara(a[2], b[2], t)),
+                Math.round(ara(a[3], b[3], t))];
       }
     }
-    return CAPA[0][1] + ',' + CAPA[0][2] + ',' + CAPA[0][3];
+    return [CAPA[0][1], CAPA[0][2], CAPA[0][3]];
   };
+
+  function hsl(v) {
+    var c = window._isiRenk(v);
+    return 'hsl(' + c[0] + ',' + c[1] + '%,' + c[2] + '%)';
+  }
 
   /* ---------- montaj kaydı olmayan nokta: mor halka ---------- */
   function stil() {
@@ -122,7 +129,7 @@
     if (v) return;
     stil();
     function sat(o, ad) {
-      return '<div class="sr"><i style="background:hsl(' + window._isiRenk(o) + ')"></i>' + ad + '</div>';
+      return '<div class="sr"><i style="background:' + hsl(o) + '"></i>' + ad + '</div>';
     }
     var d = document.createElement('div');
     d.id = 'bhsIsiLejant';
