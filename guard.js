@@ -20,6 +20,13 @@
   var benim = [];                // bizim yazdığımız updatedAt değerleri
   var zorla = false;             // tek seferlik "yine de yaz"
   var bantVar = false;
+  var acilis = Date.now();       // sayfa açılış anı
+  var yazdikMi = false;          // bu sekmeden hiç kayıt yapıldı mı
+  var ACILIS_PENCERESI = 25000;  // paftanın kendi açılış kaydını yabancı sanmamak için
+
+  /* Açılıştan hemen sonra gelen ve henüz hiç kayıt yapmadığımız değişiklik,
+     paftanın kendi açılış yazımıdır — çakışma sayma, sürümü benimse. */
+  function acilisYarisi() { return !yazdikMi && (Date.now() - acilis) < ACILIS_PENCERESI; }
 
   function fdb() { return firebase.firestore(); }
   function ref() { return fdb().collection('pafta').doc('bhs'); }
@@ -112,6 +119,7 @@
     }
     return ORJ.get.call(hedefRef).then(function (anlik) {
       var u = (anlik.exists ? anlik.data().updatedAt : 0) || 0;
+      if (son !== null && u > son && acilisYarisi()) son = u;   // açılış yazımı — benimse
       if (son !== null && u > son) {
         kilitGoster(u);
         var h = new Error('BHS-GUARD: bulut verisi değişti, kayıt durduruldu');
@@ -122,6 +130,7 @@
         if (yuk.updatedAt) benim.push(yuk.updatedAt);
         return ORJ[metod].apply(hedefRef, args).then(function (r) {
           son = yuk.updatedAt || Date.now();
+          yazdikMi = true;
           return r;
         });
       });
@@ -146,6 +155,7 @@
         var u = s.data().updatedAt || 0;
         var ix = benim.indexOf(u);
         if (ix >= 0) { benim.splice(ix, 1); son = u; return; }
+        if (son !== null && u > son && acilisYarisi()) { son = u; return; }
         if (son !== null && u > son) bantGoster();
       });
     }).catch(function () {});
