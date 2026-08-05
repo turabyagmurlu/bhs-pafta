@@ -109,12 +109,7 @@
     var s = document.createElement('style');
     s.id = 'bhsIsiStil';
     s.textContent =
-      /* montaj kaydı olmayan PANO: mor kenar, yanıp sönme yok */
-      '.mk.pano.m0,.mk.pano.cap.m0,.mk.pano.hp.m0,.mk.pano.hk.m0{' +
-      'border-color:#c084fc !important;' +
-      'box-shadow:0 0 0 2px #fff,0 0 11px 3px rgba(168,85,247,.9) !important;' +
-      'animation:none !important}' +
-      /* paftanın eski yüzen ısı şeridi — içeriği artık ana lejantta */
+       /* paftanın eski yüzen ısı şeridi — içeriği artık ana lejantta */
       '#isiLejant{display:none !important}' +
       /* katlanır lejant */
       '#lejant{padding:0 !important;overflow:hidden}' +
@@ -204,9 +199,7 @@
       sat(0.45, '%31–60 · yarı yolda') +
       sat(0.8, '%61–99 · çoğu bitti') +
       sat(1, 'tamamlandı') +
-      '<div class="sr"><i style="background:transparent;border:2px solid #c084fc;height:8px"></i>' +
-      'pano montaj kaydı yok</div>' +
-      '<div class="sr" style="opacity:.72;font-size:10.5px;margin-top:5px">' +
+       '<div class="sr" style="opacity:.72;font-size:10.5px;margin-top:5px">' +
       'Her noktanın çevresindeki halka kendi oranıdır — komşu ışıması yanıltmaz.</div>';
     ic.appendChild(b);
 
