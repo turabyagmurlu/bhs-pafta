@@ -116,7 +116,7 @@ async function excelIndir(){
     NODES.push({kod:ad,tip:'DB',mahal:mh,montaj:!!o.montaj,kaynak:kay,not:(o.not||'').replace(/\n/g,' ').slice(0,70),foto:(o.fotolar||[]).length});
     ((o.besleme&&o.besleme.kablolar)||[]).forEach(function(k){
       KAB.push({node:ad,ntip:'DB',mahal:mh,kaynak:kay,ham:(k.tip||'').trim(),kat:_hkKat(k.tip),kesit:_hkKesit(k.tip),
-        adet:parseInt(k.adet||1,10)||1,mt:_hkF(k.mt),durum:k.durum||'bekliyor'});});
+        adet:parseInt(k.adet||1,10)||1,mt:_hkF(k.mt),teyit:(k.teyit||''),durum:k.durum||'bekliyor'});});
     Object.keys(o.linye||{}).forEach(function(lk){var v=o.linye[lk]||{};
       LIN.push({node:ad,mahal:mh,kod:lk,durum:v.durum||'bekliyor',mt:_hkF(v.mt)});});});
   (data.panos||[]).forEach(function(o){
@@ -124,7 +124,7 @@ async function excelIndir(){
     NODES.push({kod:ad,tip:_hkTip(ad),mahal:mh,montaj:!!o.montaj,kaynak:kay,not:(o.not||'').replace(/\n/g,' ').slice(0,70),foto:(o.fotolar||[]).length});
     ((o.besleme&&o.besleme.kablolar)||[]).forEach(function(k){
       KAB.push({node:ad,ntip:_hkTip(ad),mahal:mh,kaynak:kay,ham:(k.tip||'').trim(),kat:_hkKat(k.tip),kesit:_hkKesit(k.tip),
-        adet:parseInt(k.adet||1,10)||1,mt:_hkF(k.mt),durum:k.durum||'bekliyor'});});
+        adet:parseInt(k.adet||1,10)||1,mt:_hkF(k.mt),teyit:(k.teyit||''),durum:k.durum||'bekliyor'});});
     Object.keys(o.linye||{}).forEach(function(lk){var v=o.linye[lk]||{};
       LIN.push({node:ad,mahal:mh,kod:lk,durum:v.durum||'bekliyor',mt:_hkF(v.mt)});});});
   var RAP=data.raporlar||[];
@@ -134,8 +134,8 @@ async function excelIndir(){
   var caps=panolar.filter(function(n){return n.tip==='ÇAP';});
   var dbM=dbs.filter(function(n){return n.montaj;}).length,capM=caps.filter(function(n){return n.montaj;}).length,
       panoM=panolar.filter(function(n){return n.montaj;}).length;
-  var kabCekSatir=CEK.length,kabCekAdet=0,kabCekMt=0,kabCekMtAdet=0;
-  CEK.forEach(function(k){kabCekAdet+=k.adet;kabCekMt+=k.mt;kabCekMtAdet+=k.mt*k.adet;});
+  var kabCekSatir=CEK.length,kabCekAdet=0,kabCekMt=0,kabCekMtAdet=0,kabCekMtHam=0,kabCekMtBek=0;
+  CEK.forEach(function(k){var _a=(k.teyit==='bekliyor')?1:k.adet; k.mtHak=k.mt*_a; kabCekAdet+=k.adet; kabCekMtHam+=k.mt; kabCekMt+=k.mtHak; kabCekMtAdet+=k.mt*k.adet; if(k.teyit==='bekliyor') kabCekMtBek+=k.mt*(k.adet-1);});
   var kabTopSatir=KAB.filter(function(k){return k.durum!=='revize'&&k.durum!=='birlesti';}).length;
   var linCek=LCEK.length,linTop=LIN.filter(function(l){return l.durum!=='revize'&&l.durum!=='birlesti';}).length,linCekMt=0;
   LCEK.forEach(function(l){linCekMt+=l.mt;});
@@ -145,7 +145,7 @@ async function excelIndir(){
   var bosMt=CEK.filter(function(k){return k.mt===0;}).length+LCEK.filter(function(l){return l.mt===0;}).length;
   var KES={},kesSira=[];
   CEK.forEach(function(k){var key=k.kat+'|'+k.kesit; if(!KES[key]){KES[key]={kat:k.kat,kesit:k.kesit,satir:0,adet:0,mt:0};kesSira.push(key);}
-    KES[key].satir++;KES[key].adet+=k.adet;KES[key].mt+=k.mt;});
+    KES[key].satir++;KES[key].adet+=k.adet;KES[key].mt+=((k.mtHak!==undefined)?k.mtHak:k.mt);});
   var NDUR={};
   NODES.forEach(function(n){
     var ks=KAB.filter(function(k){return k.node===n.kod&&k.durum!=='revize'&&k.durum!=='birlesti';});
@@ -341,7 +341,7 @@ async function excelIndir(){
   r+=Math.ceil(MH_/13.4)+2;
   r=bolum(ws,r,2,12,'YÖNETİM DİKKATİNE');
   [['▲','Birim fiyatlar bu dosyada BOŞTUR. Sözleşme eki birim fiyat cetvelinden doldurulmadan tutar kesinleşmez.',C.KIRF],
-   ['▲','Kablo metrajı yorumu netleştirilmelidir: kayıtlı metraj '+_hkNum(kabCekMt)+' m, satırlardaki adet ile çarpıldığında '+_hkNum(kabCekMtAdet)+' m olmaktadır (fark '+_hkNum(kabCekMtAdet-kabCekMt)+' m). Talep, kayıtlı metraj üzerinden yapılmıştır.',C.KIRF],
+   ['●●○','Kablo metrajı esası NETLEŞTİ (12.08.2026): besleme kablolarında metraj her kablo için ayrı ölçülür — işveren hakediş birimi ve saha mühendisi yazılı teyidi. Talep bu esasa göre hazırlanmıştır. Saha adet teyidi bekleyen '+_hkNum(kabCekMtBek)+' m talebe DAHİL EDİLMEMİŞTİR.',C.SARF],
    ['●●○','Saha rapor kayıtlarının metraj toplamı '+_hkNum(rapMt)+' m; dosya toplamı '+_hkNum(TOPMT)+' m. Fark için ek dayanak sunulmalıdır.',C.SARF],
    ['●●○',bosMt+' kalem "çekildi" işaretli olduğu hâlde metrajı boştur; hakedişe dahil edilememiştir (bkz. 09 ÇAPRAZ KONTROL · K-13).',C.SARF],
    ['●○○',revList.length+' kalem revize/birleşti statüsündedir; metraja dahil edilmemiştir (bkz. 11 REVİZE-BİRLEŞTİ).',C.GRIF]].forEach(function(q){
@@ -662,7 +662,7 @@ async function excelIndir(){
     ['K-02','Metraj','Kablo + linye = genel çekilen metraj',kabCekMt+linCekMt,TOPMT,0,'m','Toplam metrajın bileşenlerine ayrışması'],
     ['K-03','Sayım','Çekilen kablo KALEM (satır) sayısı',kabCekSatir,kabCekSatir,0,'ad','Panodaki "kalem" sayacı satır bazlıdır'],
     ['K-04','Sayım','Çekilen kablo ADET sayısı (aynı satırda birden çok kablo olabilir)',kabCekAdet,kabCekAdet,0,'ad','ÖNEMLİ: kalem ile adet farkı buradan gelir — veri hatası değil, birim farkıdır'],
-    ['K-05','Metraj','Kayıtlı metraj ile adet çarpımlı metraj farkı',kabCekMt,kabCekMtAdet,null,'m','AÇIK KONU: kayıtlı metrajın tek kablo boyu mu yoksa toplam mı olduğu netleştirilmelidir'],
+    ['K-05','Metraj','Talebe esas metraj / saha teyidi bekleyen',kabCekMt,kabCekMtAdet,null,'m','ÇÖZÜLDÜ 12.08.2026: metraj her kablo için ayrı ölçülür. Aradaki fark, saha adet teyidi bekleyen 12 kalemdir ('+_hkNum(kabCekMtBek)+' m) ve talebe dahil değildir'],
     ['K-06','Sayım','Nokta durumu bütünlüğü (tüm düğümler sınıflandı)',NODES.length,NODES.length,0,'ad','07 MONTAJ TAFSİLATI satır sayısı = toplam nokta'],
     ['K-07','Sayım','Tam biten nokta sayısı',tamDB+tamPano,tamDB+tamPano,0,'ad','★ '+tamDB+' DB + ◆ '+tamPano+' pano'],
     ['K-08','Metraj','Mahal toplamları = genel toplam',(function(){var s=0;mhSira.forEach(function(m){s+=MH[m].mt;});return Math.round(s);})(),Math.round(TOPMT),0,'m','08 MAHAL sayfası toplamı'],
@@ -753,7 +753,7 @@ async function excelIndir(){
   ws=sheet('12 HESAP ESASLARI',[2,5,42,45,2]);
   r=banner(ws,1,5,'HESAP ESASLARI VE VARSAYIMLAR','İtirazı peşinen kapatan sayfa — ölçüm, kapsam ve yöntem beyanı');
   [['1 · ÖLÇÜM ESASI','Kablo metrajları, kaynak pano klemens çıkışından hedef nokta klemens girişine kadar güzergâh boyu olarak kayda alınmıştır. Her uçta bırakılan bağlantı payının metraja DAHİL / HARİÇ olduğu işveren ile mutabık kalınarak bu satıra yazılacaktır: ____________'],
-   ['2 · METRAJ KAYIT YORUMU','Pafta kayıtlarında bir satırda birden çok kablo (adet) bulunabilmektedir. Bu dosyada talep, KAYITLI METRAJ üzerinden yapılmıştır ('+_hkNum(kabCekMt)+' m). Aynı satırlardaki adet ile çarpıldığında metraj '+_hkNum(kabCekMtAdet)+' m olmaktadır. Doğru yorum işveren ile mutabık kalınarak netleştirilecektir (bkz. 09 ÇAPRAZ KONTROL · K-05).'],
+   ['2 · METRAJ KAYIT YORUMU','Bir satırda birden çok kablo (adet) bulunabilir; metraj HER KABLO İÇİN ayrı ölçülür. Bu esas 12.08.2026 tarihinde işveren hakediş birimi ve saha mühendisi tarafından yazılı olarak teyit edilmiştir. Talebe esas kablo metrajı '+_hkNum(kabCekMt)+' m olup, saha adet teyidi bekleyen '+_hkNum(kabCekMtBek)+' m talebe DAHİL DEĞİLDİR; teyit alındıkça ayrıca sunulacaktır. Linye metrajları sortiler dahil toplam kablo boyudur; sorti ayrı poz değildir.'],
    ['3 · FİRE VE ZAYİAT','Kablo firesi hakedişe yansıtılmamıştır. Sözleşmede fire oranı öngörülmüşse belirtilecektir: ____________'],
    ['4 · KISMİ İMALAT ORANLAMASI','Kablo işi aşamaları: çekim, terminasyon, test ve devreye alma. Bu hakedişte ÇEKİM aşaması tamamlanmış kalemler talep edilmiştir; terminasyon ve test kalemleri (poz 60/70) ayrı iş kalemi olarak açık bırakılmıştır. Kısmi oran uygulanacaksa oran şeması burada tanımlanacaktır: ____________'],
    ['5 · MALZEME TEMİNİ','Kablo ve pano malzemelerinin ____________ tarafından temin edildiği; birim fiyatların malzeme DAHİL / HARİÇ olduğu bu satırda beyan edilecektir. Bu tek bilgi birim fiyatı belirleyici ölçüde etkiler.'],
