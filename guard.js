@@ -181,3 +181,41 @@
     return { bilinenSurum: son, bekleyen: benim.slice(), bantVar: bantVar };
   };
 })();
+
+/* ====== RAPOR KOPYA KORUMASI (21.08.2026) ======
+   Kaydet dugmesi kilitlenmedigi ve liste yenilenmedigi icin ayni rapor 4 kez eklenmisti.
+   Ayni metinden ikinci kayit olusursa geri alinir ve kullaniciya bildirilir. */
+(function () {
+  if (window.__BHS_KOPYA) return;
+  window.__BHS_KOPYA = 1;
+  if (!window.firebase || !firebase.firestore || !firebase.firestore.CollectionReference) return;
+  var CR = firebase.firestore.CollectionReference.prototype;
+  var orjAdd = CR.add;
+  var STIL = 'position:fixed;left:50%;top:18px;transform:translateX(-50%);z-index:999999;color:#fff;padding:11px 18px;border-radius:9px;font:600 13px system-ui;box-shadow:0 8px 26px rgba(0,0,0,.45);max-width:82vw;text-align:center;background:';
+  function bildir(msg, renk) {
+    try {
+      var d = document.createElement('div');
+      d.style.cssText = STIL + (renk || '#14384F');
+      d.textContent = msg;
+      document.body.appendChild(d);
+      setTimeout(function () { try { d.remove(); } catch (e) {} }, 4200);
+    } catch (e) {}
+  }
+  CR.add = function (veri) {
+    var self = this;
+    if (self.id !== 'sahaRaporlari' || !veri || !veri.metin) return orjAdd.apply(self, arguments);
+    var metin = String(veri.metin).trim();
+    return orjAdd.call(self, veri).then(function (ref) {
+      return self.get().then(function (q) {
+        var ayni = 0;
+        q.forEach(function (d) { if (String((d.data() || {}).metin || '').trim() === metin) ayni++; });
+        if (ayni > 1) {
+          return ref.delete().then(function () { bildir('Bu rapor zaten kayitli — kopya eklenmedi', '#8a5a12'); return ref; })
+            .catch(function () { bildir('Bu rapor zaten kayitli', '#8a5a12'); return ref; });
+        }
+        bildir('Rapor kaydedildi ✓', '#1F6B4A');
+        return ref;
+      }).catch(function () { bildir('Rapor kaydedildi ✓', '#1F6B4A'); return ref; });
+    });
+  };
+})();

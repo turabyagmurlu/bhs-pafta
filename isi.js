@@ -267,7 +267,10 @@
     if (!anahtar) { var p = planli(o, it.hedefTip, kod); yildiz = !p; anahtar = p ? kod : (kod + ' (*)');
       if (yildiz && o.ekLinye.indexOf(anahtar) < 0) o.ekLinye.push(anahtar); }
     var eski = o.linye[anahtar] || {}; var mt = metraj(it);
-    o.linye[anahtar] = { durum: (it.durum || 'cekildi'), mt: (mt ? String(mt) : (eski.mt || '')) };
+    // METRAJ BIRIKIMI: sorti raporu mevcut metrajin USTUNE EKLENIR (21.08.2026)
+    var _e = parseFloat(String(eski.mt || 0).replace(',', '.')) || 0, _s;
+    if (it.is === 'sorti' && mt > 0 && _e > 0) _s = _e + mt; else _s = (mt > 0 ? mt : _e);
+    o.linye[anahtar] = { durum: (it.durum || 'cekildi'), mt: (_s ? String(_s) : ''), oncekiMt: (_e ? String(_e) : '') };
     if (it.hedefTip === 'db') o.kablo = true;
     var sorti = (it.is === 'sorti');
     try {
