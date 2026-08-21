@@ -219,3 +219,65 @@
     });
   };
 })();
+
+
+/* ===== BHS ARSIV — rapor cevrimdisi yedegi + arsiv indirici (v1) ===== */
+(function(){
+  try{ if(String(location.pathname).indexOf("saha-raporlari")<0) return; }catch(e){ return; }
+  if(window.__BHS_ARSIV) return; window.__BHS_ARSIV=true;
+  var K="bhsRaporArsiv", basarili=false;
+  function yaz(a){ try{ localStorage.setItem(K,JSON.stringify({t:Date.now(),r:a})); }catch(e){} }
+  function oku(){ try{ return JSON.parse(localStorage.getItem(K)||"null"); }catch(e){ return null; } }
+  function bugun(){ var d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+  function esc(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+  var n=0, iv=setInterval(function(){ n++;
+    try{ if(window.firebase && firebase.firestore && firebase.firestore.CollectionReference){ clearInterval(iv); yamala(); } }catch(e){}
+    if(n>200) clearInterval(iv);
+  },100);
+  function yamala(){
+    var P=firebase.firestore.CollectionReference.prototype, ES=P.get;
+    P.get=function(){ var self=this, p=ES.apply(this,arguments);
+      try{ if(self.id==="sahaRaporlari"){ p.then(function(q){
+        var a=[]; q.forEach(function(d){ var o=d.data()||{}; a.push({id:d.id,tarih:o.tarih||"",konum:o.konum||"",kisi:o.kisi||o.ekleyen||"",metin:String(o.metin||""),onayli:!!o.onayli,uygulandi:!!o.paftaUygulandi,olus:(o.olus&&o.olus.seconds)?o.olus.seconds:null,paftaVeri:o.paftaVeri||[]}); });
+        if(a.length){ basarili=true; yaz(a); bulut(a); }
+      }).catch(function(){}); } }catch(e){}
+      return p; };
+  }
+  function bulut(a){ try{ var bg=bugun(); if(localStorage.getItem("bhsRaporBulutGun")===bg) return; localStorage.setItem("bhsRaporBulutGun",bg);
+    firebase.firestore().doc("pafta/rapor-yedek").set({tarih:bg,zaman:Date.now(),adet:a.length,veri:JSON.stringify(a)}).catch(function(){}); }catch(e){} }
+  function arsivHTML(c){
+    var r=(c.r||[]).slice().sort(function(x,y){ return String(y.tarih||"").localeCompare(String(x.tarih||"")); });
+    var ts=new Date(c.t||Date.now()).toLocaleString("tr-TR");
+    var h="<!doctype html><meta charset=\"utf-8\"><title>BHS Saha Raporlari Arsivi</title>";
+    h+="<style>body{font-family:system-ui,Segoe UI,Arial;background:#0f1216;color:#e8eef5;margin:0;padding:18px}h1{font-size:19px;margin:0 0 4px}.b{font-size:12px;color:#8fa6bd;margin-bottom:6px}.ust{position:sticky;top:0;background:#0f1216;padding:10px 0;border-bottom:1px solid #263241;margin-bottom:8px}input{width:100%;box-sizing:border-box;padding:10px;border-radius:9px;border:1px solid #2b3a4b;background:#151b22;color:#e8eef5;font-size:14px}.k{border:1px solid #263241;border-radius:11px;padding:11px 13px;margin:10px 0;background:#141a21}.m{white-space:pre-wrap;font-size:13px;line-height:1.5}.et{display:inline-block;font-size:11px;padding:2px 8px;border-radius:99px;margin-left:6px}.ok{background:#12351f;color:#7ee2a8}.bk{background:#3a2c12;color:#f0c674}</style>";
+    h+="<h1>BHS Peyzaj — Saha Raporlari Arsivi</h1>";
+    h+="<div class=\"b\">"+r.length+" rapor · arsiv tarihi: "+esc(ts)+" · cevrimdisi kopya (sunucu gerektirmez)</div>";
+    h+="<div class=\"ust\"><input id=\"ara\" placeholder=\"Ara: DB 30 · L16 · villa · 08.04 ...\"></div><div id=\"liste\">";
+    for(var i=0;i<r.length;i++){ var x=r[i];
+      h+="<div class=\"k\" data-s=\""+esc((x.tarih+" "+x.konum+" "+x.kisi+" "+x.metin).toLowerCase())+"\">";
+      h+="<div class=\"b\">"+esc(x.tarih)+" · "+esc(x.konum)+" · "+esc(x.kisi)+(x.onayli?"<span class=\"et ok\">onayli</span>":"")+(x.uygulandi?"<span class=\"et ok\">paftaya islendi</span>":"<span class=\"et bk\">islenmedi</span>")+"</div>";
+      h+="<div class=\"m\">"+esc(x.metin)+"</div></div>"; }
+    h+="</div><scr"+"ipt>document.getElementById('ara').addEventListener('input',function(){var q=this.value.toLowerCase();[].forEach.call(document.querySelectorAll('.k'),function(k){k.style.display=(!q||k.getAttribute('data-s').indexOf(q)>=0)?'':'none';});});</scr"+"ipt>";
+    return h;
+  }
+  function indir(ad,ic,tip){ var b=new Blob([ic],{type:tip}); var u=URL.createObjectURL(b); var a=document.createElement("a"); a.href=u; a.download=ad; document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(u); a.remove(); },1500); }
+  function ui(){
+    if(document.getElementById("bhsArsivKok")) return;
+    var d=document.createElement("div"); d.id="bhsArsivKok";
+    d.style.cssText="position:fixed;right:14px;bottom:14px;z-index:99999;display:flex;flex-direction:column;gap:6px;align-items:flex-end;font-family:system-ui,Segoe UI,Arial";
+    var m=document.createElement("div"); m.style.cssText="display:none;background:#141a21;border:1px solid #2b3a4b;border-radius:11px;padding:6px;min-width:225px;box-shadow:0 8px 26px rgba(0,0,0,.45)";
+    function sat(t,f){ var x=document.createElement("div"); x.textContent=t; x.style.cssText="padding:9px 11px;font-size:13px;color:#dbe7f3;cursor:pointer;border-radius:8px"; x.onmouseover=function(){x.style.background="#1d2a38";}; x.onmouseout=function(){x.style.background="";}; x.onclick=f; m.appendChild(x); }
+    sat("💾 HTML arsiv indir",function(){ var c=oku(); if(!c){ alert("Henuz arsiv yok — raporlar yuklendikten sonra tekrar dene."); return; } indir("BHS_saha_raporlari_arsiv_"+bugun()+".html",arsivHTML(c),"text/html"); });
+    sat("🗄 JSON yedek indir",function(){ var c=oku(); if(!c){ alert("Henuz arsiv yok."); return; } indir("BHS_saha_raporlari_"+bugun()+".json",JSON.stringify(c,null,1),"application/json"); });
+    sat("👁 Cevrimdisi goruntule",function(){ var c=oku(); if(!c){ alert("Henuz arsiv yok."); return; } var w=window.open("","_blank"); w.document.write(arsivHTML(c)); w.document.close(); });
+    var b=document.createElement("button"); b.textContent="📦 Arsiv";
+    b.style.cssText="background:#1d2a38;color:#dbe7f3;border:1px solid #33465c;border-radius:999px;padding:9px 15px;font-size:13px;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.35)";
+    b.onclick=function(){ var c=oku(); b.title=c?("Son arsiv: "+new Date(c.t).toLocaleString("tr-TR")+" · "+c.r.length+" rapor"):"Arsiv yok"; m.style.display=(m.style.display==="none")?"block":"none"; };
+    d.appendChild(m); d.appendChild(b); document.body.appendChild(d);
+  }
+  if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",ui); else ui();
+  setTimeout(function(){ if(basarili) return; var c=oku(); if(!c||!c.r||!c.r.length) return;
+    var w=document.createElement("div"); w.textContent="⚠ Rapor sunucusuna ulasilamadi — "+c.r.length+" raporluk cevrimdisi arsiv mevcut. Sag alttaki 📦 Arsiv > Cevrimdisi goruntule.";
+    w.style.cssText="position:fixed;left:0;right:0;top:0;z-index:99998;background:#3a2c12;color:#f0c674;padding:10px 14px;font-size:13px;text-align:center;font-family:system-ui,Segoe UI,Arial"; document.body.appendChild(w);
+  },15000);
+})();

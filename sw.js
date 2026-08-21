@@ -1,5 +1,5 @@
 /* BHS Service Worker — online: DAIMA taze HTML (network-first); offline: cache */
-const C='bhs-cache-v2';
+const C='bhs-cache-v3';
 self.addEventListener('install', e=>self.skipWaiting());
 self.addEventListener('activate', e=>e.waitUntil(self.clients.claim()));
 self.addEventListener('fetch', e=>{
