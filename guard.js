@@ -224,7 +224,7 @@
 /* ===== BHS ARSIV — rapor cevrimdisi yedegi + arsiv indirici (v2) ===== */
 (function(){
   try{ if(String(location.pathname).indexOf("saha-raporlari")<0) return; }catch(e){ return; }
-  if(window.__BHS_ARSIV) return; window.__BHS_ARSIV=true;
+  window.__BHS_ARSIV=(window.__BHS_ARSIV||0)+1;
   var K="bhsRaporArsiv", basarili=false;
   function yaz(a){ try{ localStorage.setItem(K,JSON.stringify({t:Date.now(),r:a})); }catch(e){} }
   function oku(){ try{ return JSON.parse(localStorage.getItem(K)||"null"); }catch(e){ return null; } }

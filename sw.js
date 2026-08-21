@@ -1,15 +1,19 @@
-/* BHS Service Worker — online: DAIMA taze HTML (network-first); offline: cache */
-const C='bhs-cache-v3';
-self.addEventListener('install', e=>self.skipWaiting());
-self.addEventListener('activate', e=>e.waitUntil(self.clients.claim()));
-self.addEventListener('fetch', e=>{
-  const req=e.request; if(req.method!=='GET') return;
-  let url; try{ url=new URL(req.url); }catch(_){ return; }
-  if(url.origin!==location.origin) return;            // CDN/Firebase'e dokunma
-  const html = req.mode==='navigate' || url.pathname.endsWith('.html') || url.pathname.endsWith('/');
-  if(!html) return;
+/* BHS service worker — AG ONCE (network-first), cevrimdisi yedek onbellek */
+var C="bhs-cache-v4";
+self.addEventListener("install",function(e){ self.skipWaiting(); });
+self.addEventListener("activate",function(e){ e.waitUntil(caches.keys().then(function(k){ return Promise.all(k.map(function(x){ return (x===C)?null:caches.delete(x); })); }).then(function(){ return self.clients.claim(); })); });
+self.addEventListener("fetch",function(e){
+  var r=e.request;
+  if(r.method!=="GET") return;
+  var u;
+  try{ u=new URL(r.url); }catch(err){ return; }
+  if(u.origin!==self.location.origin) return;
   e.respondWith(
-    fetch(req).then(res=>{ try{ const cp=res.clone(); caches.open(C).then(c=>c.put(req,cp)); }catch(_){ } return res; })
-              .catch(()=>caches.match(req))
+    fetch(r).then(function(res){
+      try{ var k=res.clone(); caches.open(C).then(function(c){ c.put(r,k); }); }catch(err){}
+      return res;
+    }).catch(function(){
+      return caches.match(r).then(function(m){ return m || caches.match(r.url.split("?")[0]).then(function(m2){ return m2 || new Response("Cevrimdisi",{status:503}); }); });
+    })
   );
 });
