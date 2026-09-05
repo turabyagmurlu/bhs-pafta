@@ -14,6 +14,10 @@
 body{background:var(--bg);color:var(--txt);overflow:hidden;height:100vh;display:flex;flex-direction:column}
 header{background:var(--panel);padding:10px 18px;display:flex;align-items:center;gap:18px;flex-wrap:wrap;z-index:50}
 header h1{font-size:16px}
+#aracMenu .btn{display:block;width:100%;text-align:left;margin:3px 0;background:#26415a}
+#aracMenu .aracGrp{font-size:10px;color:#7d93a3;font-weight:700;letter-spacing:.5px;margin:6px 4px 2px;text-transform:uppercase}
+#aracMenu .aracGrp:first-child{margin-top:0}
+
 header .sub{font-size:11px;color:var(--mut)}
 .btn{background:#26415a;color:#fff;border:none;border-radius:6px;padding:7px 12px;font-size:12px;cursor:pointer}
 .btn:hover{background:#33567a}
@@ -109,29 +113,36 @@ body[data-rol="saha"] [onclick*="mahalEkle()"],body[data-rol="izleyici"] [onclic
     <div class="sub">İnteraktif sürüm | Veri: günlük imalat raporları 09.03–09.06.2026 | Proje: BH-DS-GEN-IFC-L-0001-03</div>
   </div>
   <span id="sayac"></span>
-  <button class="btn" id="kilitBtn" onclick="kilitToggle()" style="background:#5a4a26">🔒 Konumlar kilitli</button>
-  <button class="btn" id="geriBtn" onclick="geriAl()" style="background:#5a3a26" disabled>↩ Geri al</button>
   <span style="position:relative;display:inline-block;margin-right:4px">
     <input id="aramaKutu" placeholder="🔍 Ara: DB, pano, linye, not…" autocomplete="off" oninput="aramaYap(this.value)" onkeydown="if(event.key==='Enter'){aramaSec(0);} if(event.key==='Escape'){this.value='';aramaYap('');}" onblur="setTimeout(()=>{var b=document.getElementById('aramaSonuc'); if(b) b.style.display='none';},200)" style="width:210px;background:#0f1923;color:#fff;border:1px solid #33567a;border-radius:6px;padding:5px 9px;font-size:12px">
     <div id="aramaSonuc" style="display:none;position:absolute;top:32px;left:0;z-index:300;background:#15222e;border:1px solid #33567a;border-radius:6px;max-height:280px;overflow-y:auto;width:250px;box-shadow:0 8px 24px rgba(0,0,0,.55)"></div>
   </span>
-  <button class="btn" onclick="ekle('db')">+ DB ekle</button>
-  <button class="btn" onclick="ekle('pano')">+ ÇAP/Pano ekle</button>
   <button class="btn" style="background:#3a2e6b" onclick="mahalAc()">🏘 Mahaller</button>
-  <button class="btn" style="background:#5a3a26" onclick="eksikAc()">📋 Eksik Listesi</button>
-  
   <button class="btn" style="background:#155e75" onclick="window.open('panel.html','_blank')">📊 İlerleme Panosu</button>
   <button class="btn" id="isiBtn" style="background:#7a3b2e" onclick="isiToggle()">🔥 Isı Haritası</button>
-  <button class="btn" id="besSemaBtn" style="background:#1d5e54" onclick="besSemaAc()">🔌 Besleme Şeması</button>
-  <button class="btn" id="yedeklerBtn" style="background:#5a4a26" onclick="yedeklerAc()">🗄 Yedekler</button>
+  <span id="aracMenuKap" style="position:relative;display:inline-block">
+    <button class="btn" id="aracBtn" style="background:#3a4a5e" onclick="aracMenuToggle()">⚙ Araçlar ▾</button>
+    <div id="aracMenu" style="display:none;position:absolute;top:36px;left:0;z-index:320;background:#15222e;border:1px solid #33567a;border-radius:8px;padding:8px;min-width:230px;box-shadow:0 10px 28px rgba(0,0,0,.6)">
+      <div class="aracGrp">Düzenleme</div>
+      <button class="btn" onclick="ekle('db')">+ DB ekle</button>
+      <button class="btn" onclick="ekle('pano')">+ ÇAP/Pano ekle</button>
+      <button class="btn" id="kilitBtn" onclick="kilitToggle()" style="background:#5a4a26">🔒 Konumlar kilitli</button>
+      <button class="btn" id="geriBtn" onclick="geriAl()" style="background:#5a3a26" disabled>↩ Geri al</button>
+      <div class="aracGrp">Analiz</div>
+      <button class="btn" style="background:#5a3a26" onclick="eksikAc()">📋 Eksik Listesi</button>
+      <button class="btn" id="besSemaBtn" style="background:#1d5e54" onclick="besSemaAc()">🔌 Besleme Şeması</button>
+      <div class="aracGrp">Veri &amp; Çıktı</div>
+      <button class="btn" id="yedeklerBtn" style="background:#5a4a26" onclick="yedeklerAc()">🗄 Yedekler</button>
+      <button class="btn" id="yedekBtn" onclick="disaAktar()">JSON dışa aktar</button>
+      <button class="btn" onclick="iceAktarSec()">JSON içe aktar</button>
+      <button class="btn" style="background:#1f5e4a" onclick="excelIndir()">📊 Excel indir</button>
+      <button class="btn" style="background:#3a4a5e" onclick="ciktiAl()">🖨️ Çıktı (PDF)</button>
+    </div>
+  </span>
+  <button class="btn" style="background:#1f4a5e" onclick="window.open('saha-raporlari.html','_blank')">📡 Rapor Sunucusu</button>
   <span id="rolRozet" style="display:inline-block;padding:6px 12px;border-radius:8px;background:#10212e;border:1px solid #2a4258;font-size:12px;font-weight:700;color:#cfe3ea"></span>
   <button class="btn" style="background:#5a2626" onclick="cikis()">🚪 Çıkış</button>
   <span id="rsay" style="display:none">0</span>
-  <button class="btn" style="background:#1f4a5e" onclick="window.open('saha-raporlari.html','_blank')">📡 Rapor Sunucusu</button>
-  <button class="btn" id="yedekBtn" onclick="disaAktar()">JSON dışa aktar</button>
-  <button class="btn" onclick="iceAktarSec()">JSON içe aktar</button>
-  <button class="btn" style="background:#1f5e4a" onclick="excelIndir()">📊 Excel indir</button>
-  <button class="btn" style="background:#3a4a5e" onclick="ciktiAl()">🖨️ Çıktı (PDF)</button>
   <input type="file" id="dosya" accept=".json" style="display:none">
   <input type="file" id="fotosec" accept="image/*" multiple style="display:none">
   <input type="file" id="fotokam" accept="image/*" capture="environment" style="display:none">
@@ -237,6 +248,50 @@ function kaydet(force=false){
   if(force){ calistir(); return; }
   idbZaman = setTimeout(calistir, 250);
 }
+// --- Araçlar menüsü (05.09.2026: üst bar sadeleştirme) ---
+function aracMenuToggle(){ var m=document.getElementById('aracMenu'); if(!m) return; m.style.display=(m.style.display==='none'||!m.style.display)?'block':'none'; }
+document.addEventListener('click',function(e){ var k=document.getElementById('aracMenuKap'), m=document.getElementById('aracMenu'); if(!k||!m) return; if(!k.contains(e.target)) m.style.display='none'; else if(e.target.closest('#aracMenu .btn')) setTimeout(function(){ m.style.display='none'; },150); });
+// --- Saha raporlarında boş 'tarih' alanını metinden doldur (05.09.2026, yönetici, bir kerelik) ---
+function _sahaTarihDoldur(arr){
+  if(window.ROL!=='yonetici' || !Array.isArray(arr)) return;
+  var isler=[];
+  arr.forEach(function(r){
+    if(!r || !r._id) return;
+    if(r.tarih && /^\d{4}-\d{2}-\d{2}/.test(r.tarih)) return;
+    var m=String(r.metin||'').match(/(\d{1,2})[\s.\/-](\d{1,2})[\s.\/-](20\d\d)/);
+    if(!m) return;
+    var t=m[3]+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0');
+    r.tarih=t; isler.push({id:r._id, tarih:t});
+  });
+  if(!isler.length) return;
+  var fdb=firebase.firestore(), say=0;
+  isler.forEach(function(x){ fdb.collection('sahaRaporlari').doc(x.id).update({tarih:x.tarih}).then(function(){ say++; if(say===isler.length){ try{ gunluk('📅 '+say+' saha raporunun boş tarih alanı metinden dolduruldu'); toast('📅 '+say+' rapora tarih yazıldı','#2e6b3a'); }catch(e){} } }).catch(function(){}); });
+}
+// --- Mükerrer rapor koruması (05.09.2026) ---
+// Aynı tarih+hedef+bayrak+metraj+adet+not ile ikinci kez giren kayıt atılır.
+// rid (rapor kimliği) ikisinde de varsa ve FARKLIYSA iki ayrı rapordur, dokunulmaz.
+function _rapAnahtar(r){ return [r.tarih||'',r.hedef||'',r.montaj?1:0,r.kablo?1:0,r.revize?1:0,(r.metraj==null?'':r.metraj),(r.adet==null?'':r.adet),String(r.not||'').trim()].join('|'); }
+function raporTekille(sessiz){
+  if(!data||!Array.isArray(data.raporlar)) return 0;
+  var gor={}, temiz=[], atilan=0;
+  for(var i=0;i<data.raporlar.length;i++){
+    var r=data.raporlar[i]; if(!r) continue;
+    var k=_rapAnahtar(r), onceki=gor[k];
+    if(onceki && (!onceki.rid || !r.rid || onceki.rid===r.rid)){ atilan++; continue; }
+    if(!onceki) gor[k]=r;
+    temiz.push(r);
+  }
+  if(atilan){
+    data.raporlar=temiz;
+    try{ gunluk('🧹 '+atilan+' mükerrer rapor kaydı otomatik ayıklandı'); }catch(e){}
+    if(!sessiz){ try{ toast('🧹 '+atilan+' mükerrer rapor ayıklandı','#2e6b3a'); }catch(e){} }
+  }
+  return atilan;
+}
+var _kaydetOrj=kaydet;
+kaydet=function(force){ try{ raporTekille(true); }catch(e){} return _kaydetOrj.apply(this,arguments); };
+// Açılıştan 20 sn sonra yönetici sekmesi eski mükerrerleri bir kez temizler ve buluta yazar
+setTimeout(function(){ try{ if(window.ROL==='yonetici' && raporTekille(false)>0){ kaydet(true); try{ rsayGuncelle(); }catch(e){} } }catch(e){} }, 20000);
 function filtre(tip){
   aktifFiltre = (aktifFiltre===tip) ? null : tip;
   document.querySelectorAll('.ibar').forEach(e=>e.classList.remove('aktif'));
@@ -1029,7 +1084,7 @@ function mahalRapor(){
     try{ _mahalRaporExcel(); }catch(err){ console.warn('excel hata',err); _mahalRaporWP(); }
   }).catch(function(){ _mahalRaporWP(); });
 }
-function _loadExcelJS(){ return new Promise(function(res,rej){ if(window.ExcelJS) return res(); var s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js'; s.onload=function(){res();}; s.onerror=rej; document.head.appendChild(s); }); }
+function _loadExcelJS(){ return new Promise(function(res,rej){ if(window.ExcelJS) return res(); var s=document.createElement('script'); s.src='https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js'; s.onload=function(){res();}; s.onerror=rej; document.head.appendChild(s); }); }
 function _mahalRaporWP(){
   var t=new Date().toLocaleDateString('tr-TR'); var bitti=[], devam=[];
   data.mahaller.forEach(function(m){ var d=mahalDurum(m); (d.bitti?bitti:devam).push({m:m,d:d}); });
@@ -1235,11 +1290,11 @@ function rolUygula(){
   document.body.setAttribute('data-rol', rol);
   var rz=document.getElementById('rolRozet'); if(rz) rz.textContent=ROL_AD[rol]||rol;
   // RESET: önce hepsini göster
-  ["[onclick*=\"ekle('db')\"]","[onclick*=\"ekle('pano')\"]","[onclick*='kilitToggle()']","[onclick*='iceAktarSec()']","[onclick*='raporAc()']","[onclick*='wpAc()']","[onclick*='geriAl()']","[onclick*='elleKaydet()']","[onclick*='raporPaftaAc()']"].forEach(function(sel){ document.querySelectorAll(sel).forEach(function(e){e.style.display='';}); });
+  ["[onclick*=\"ekle('db')\"]","[onclick*=\"ekle('pano')\"]","[onclick*='kilitToggle()']","[onclick*='iceAktarSec()']","[onclick*='geriAl()']","[onclick*='elleKaydet()']","[onclick*='raporPaftaAc()']"].forEach(function(sel){ document.querySelectorAll(sel).forEach(function(e){e.style.display='';}); });
   document.querySelectorAll('[onclick*="gunlukAc()"]').forEach(function(e){ e.style.display=(rol==='yonetici')?'':'none'; });
   var H=function(sels){ sels.forEach(function(sel){ document.querySelectorAll(sel).forEach(function(e){e.style.display='none';}); }); };
   if(rol==='saha'){ H(["[onclick*=\"ekle('db')\"]","[onclick*=\"ekle('pano')\"]","[onclick*='iceAktarSec()']"]); }
-  else if(rol==='izleyici'){ H(["[onclick*=\"ekle('db')\"]","[onclick*=\"ekle('pano')\"]","[onclick*='kilitToggle()']","[onclick*='iceAktarSec()']","[onclick*='raporAc()']","[onclick*='wpAc()']","[onclick*='geriAl()']","[onclick*='elleKaydet()']","[onclick*='raporPaftaAc()']"]); }
+  else if(rol==='izleyici'){ H(["[onclick*=\"ekle('db')\"]","[onclick*=\"ekle('pano')\"]","[onclick*='kilitToggle()']","[onclick*='iceAktarSec()']","[onclick*='geriAl()']","[onclick*='elleKaydet()']","[onclick*='raporPaftaAc()']"]); }
 }
 function _hedefAd(){ try{ var o=nesne(); return secili.tip==='db'?('DB '+String(o.id).padStart(2,'0')):o.kod; }catch(e){ return '?'; } }
 function gunluk(metin){
@@ -1327,6 +1382,7 @@ function raporPaftaAc(){
   firebase.firestore().collection('sahaRaporlari').orderBy('olus','desc').limit(400).get().then(function(snap){
     var arr=[]; snap.forEach(function(d){arr.push(Object.assign({_id:d.id}, d.data()));});
     window._sahaRaporlar=arr; raporPaftaRender();
+    try{ _sahaTarihDoldur(arr); }catch(e){}
   }).catch(function(e){
     p.innerHTML='<h3 style="font-size:14px;margin-bottom:8px">📥 Saha Raporları</h3><div style="color:#ff8a80;font-size:12px">Okunamadı: '+(e.code||e.message||'hata')+'</div><button class="btn" style="width:100%;margin-top:8px" onclick="document.getElementById(\'raporSahaPanel\').style.display=\'none\'">Kapat</button>';
   });
@@ -1550,19 +1606,7 @@ async function _yedekGeri(id, etiket){
     yedekKapat();
   }catch(e){ alert('Geri yükleme hatası: '+(e&&e.message||e)); }
 }
-function wpAc(){ try{alert('Manuel rapor girisi kapali.\nRaporlar yalniz Rapor Sunucusu uzerinden islenir.');}catch(e){} return;
-  kapat(); document.getElementById('raporPanel').style.display='none';
-  document.getElementById('raporListePanel').style.display='none';
-  const p = document.getElementById('wpPanel');
-  p.style.display='block';
-  p.innerHTML = `
-    <h3 style="font-size:14px;margin-bottom:8px">💬 WhatsApp İmalat Raporu</h3>
-    <div style="color:#90a4ae;font-size:11px;margin-bottom:6px">Rapor metnini olduğu gibi yapıştır — DB/ÇAP numaralarını, yapılan işi ve tarihi ben bulurum.</div>
-    <textarea id="wpMetin" rows="9" placeholder="Örn:\n26 05 2026\nVilla 24 ve Altı\n1 adet Drover Box 03 Çevre Aydınlatma Panosu Montajı yapıldı..." style="width:100%;background:#0f1923;color:#fff;border:1px solid #33567a;border-radius:6px;padding:8px;font-size:12px"></textarea>
-    <button class="btn" style="width:100%;margin-top:8px;background:#2e6b3a" onclick="wpCozumle()">🔍 Metni Çözümle</button>
-    <div id="wpSonuc" style="margin-top:10px"></div>
-    <button class="btn" style="width:100%;margin-top:8px" onclick="document.getElementById('wpPanel').style.display='none'">Kapat</button>`;
-}
+function wpAc(){ try{ toast('Manuel rapor girişi kapalı — raporlar yalnız Rapor Sunucusu üzerinden işlenir','#7a5c1e'); }catch(e){} }
 function wpCozumle(){
   const txt=document.getElementById('wpMetin').value;
   if(!txt.trim()){ alert('Önce metni yapıştır.'); return; }
@@ -1728,76 +1772,8 @@ data.mahaller = data.mahaller || [];
 let raporFotolar = [];
 function bugun(){ const d=new Date(); return d.toISOString().slice(0,10); }
 function rsayGuncelle(){ const e=document.getElementById('rsay'); if(e) e.textContent = data.raporlar.length; }
-function raporAc(){ try{alert('Manuel rapor girisi kapali.\nRaporlar yalniz Rapor Sunucusu uzerinden islenir.');}catch(e){} return;
-  kapat(); document.getElementById('raporListePanel').style.display='none';
-  raporFotolar = [];
-  const p = document.getElementById('raporPanel');
-  const dbOpts = data.dbs.map((d,i)=>`<option value="db:${i}">DB ${d.id}</option>`).join('');
-  const pnOpts = data.panos.map((o,i)=>`<option value="pano:${i}">${o.kod}</option>`).join('');
-  p.style.display='block';
-  p.innerHTML = `
-    <h3 style="font-size:14px;margin-bottom:8px">Gunluk Imalat Raporu</h3>
-    <label style="display:block;padding:4px 0">Tarih<br><input type="date" id="rTarih" value="${bugun()}" style="width:100%;background:#0f1923;color:#fff;border:1px solid #33567a;border-radius:6px;padding:6px"></label>
-    <label style="display:block;padding:4px 0">Pano / DB<br>
-      <select id="rHedef" style="width:100%;background:#0f1923;color:#fff;border:1px solid #33567a;border-radius:6px;padding:6px">
-        <optgroup label="Driver Box">${dbOpts}</optgroup>
-        <optgroup label="CAP/HK/HP Panolari">${pnOpts}</optgroup>
-      </select></label>
-    <div style="font-weight:700;margin-top:6px">Yapilan is</div>
-    <label style="display:flex;gap:8px;padding:4px 0"><input type="checkbox" id="rMontaj"> Pano montaji yapildi</label>
-    <label style="display:flex;gap:8px;padding:4px 0"><input type="checkbox" id="rKablo"> Kablo imalati yapildi</label>
-    <label style="display:flex;gap:8px;padding:4px 0"><input type="checkbox" id="rRevize"> Revizyon yapildi</label>
-    <div class="row" style="display:flex;gap:8px;margin-top:6px">
-      <label style="flex:1">Metraj (mt)<br><input type="number" id="rMetraj" min="0" style="width:100%;background:#0f1923;color:#fff;border:1px solid #33567a;border-radius:6px;padding:6px"></label>
-      <label style="flex:1">Adet<br><input type="number" id="rAdet" min="0" style="width:100%;background:#0f1923;color:#fff;border:1px solid #33567a;border-radius:6px;padding:6px"></label>
-    </div>
-    <textarea id="rNot" rows="2" placeholder="Aciklama (kablo tipi, hat no, ekip...)" style="width:100%;background:#0f1923;color:#fff;border:1px solid #33567a;border-radius:6px;padding:6px;margin-top:8px"></textarea>
-    <div style="margin-top:8px;font-weight:700;font-size:12px">Fotograf (<span id="rfsay">0</span>)</div>
-    <div class="row" style="display:flex;gap:6px;margin-top:6px">
-      <button class="btn" style="flex:1;background:#2e6b3a" onclick="document.getElementById('rfotokam').click()">Kamera</button>
-      <button class="btn" style="flex:1" onclick="document.getElementById('rfotosec').click()">Galeri</button>
-    </div>
-    <input type="file" id="rfotokam" accept="image/*" capture="environment" style="display:none">
-    <input type="file" id="rfotosec" accept="image/*" multiple style="display:none">
-    <div class="row" style="display:flex;gap:8px;margin-top:12px">
-      <button class="btn" style="flex:1;background:#1b5e20;font-weight:700" onclick="raporKaydet()">KAYDET</button>
-      <button class="btn" onclick="document.getElementById('raporPanel').style.display='none'">Vazgec</button>
-    </div>`;
-  const fy = async e=>{
-    for(const f of e.target.files){ raporFotolar.push(await kucult(f,1280,.8)); }
-    e.target.value=''; document.getElementById('rfsay').textContent = raporFotolar.length;
-  };
-  document.getElementById('rfotokam').onchange = fy;
-  document.getElementById('rfotosec').onchange = fy;
-}
-function raporKaydet(){ try{alert('Manuel rapor girisi kapali.\nRaporlar yalniz Rapor Sunucusu uzerinden islenir.');}catch(e){} return;
-  const hedef = document.getElementById('rHedef').value;
-  const [tip, ix] = hedef.split(':');
-  const i = parseInt(ix);
-  const r = {
-    tarih: document.getElementById('rTarih').value,
-    hedef: tip==='db' ? 'DB '+data.dbs[i].id : data.panos[i].kod,
-    montaj: document.getElementById('rMontaj').checked,
-    kablo: document.getElementById('rKablo').checked,
-    revize: document.getElementById('rRevize').checked,
-    metraj: document.getElementById('rMetraj').value || null,
-    adet: document.getElementById('rAdet').value || null,
-    not: document.getElementById('rNot').value || '',
-    fotolar: raporFotolar
-  };
-  if(!r.montaj && !r.kablo && !r.revize && !r.not && !r.metraj){ alert('En az bir is isaretle veya aciklama yaz.'); return; }
-  data.raporlar.push(r); try{gunluk(r.hedef+' rapor eklendi'+(r.metraj?' ('+r.metraj+'m)':''));}catch(_g){}
-  if(tip==='db'){
-    if(r.montaj) data.dbs[i].montaj = true;
-    if(r.kablo) data.dbs[i].kablo = true;
-    if(r.revize) data.dbs[i].revize = true;
-  } else {
-    if(r.montaj) data.panos[i].montaj = true;
-  }
-  document.getElementById('raporPanel').style.display='none';
-  rsayGuncelle(); ciz();
-  alert('Rapor kaydedildi, pafta guncellendi. ' + r.hedef);
-}
+function raporAc(){ try{ toast('Manuel rapor girişi kapalı — raporlar yalnız Rapor Sunucusu üzerinden işlenir','#7a5c1e'); }catch(e){} }
+function raporKaydet(){ try{ toast('Manuel rapor girişi kapalı — raporlar yalnız Rapor Sunucusu üzerinden işlenir','#7a5c1e'); }catch(e){} }
 function raporListeAc(){
   kapat(); document.getElementById('raporPanel').style.display='none';
   const p = document.getElementById('raporListePanel');
@@ -2165,8 +2141,8 @@ rsayGuncelle();
 
 })();
 </script>
-<script src="hakedis.js?v=3"></script>
-  <script src="guard.js?v=4"></script>
-  <script src="isi.js?v=3"></script>
+<script src="hakedis.js?v=4"></script>
+  <script src="guard.js?v=5"></script>
+  <script src="isi.js?v=4"></script>
 </body>
 </html>
