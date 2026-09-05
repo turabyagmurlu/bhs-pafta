@@ -283,6 +283,7 @@ function raporTekille(sessiz){
   }
   if(atilan){
     data.raporlar=temiz;
+    window._tekilleToplam=(window._tekilleToplam||0)+atilan;
     try{ gunluk('🧹 '+atilan+' mükerrer rapor kaydı otomatik ayıklandı'); }catch(e){}
     if(!sessiz){ try{ toast('🧹 '+atilan+' mükerrer rapor ayıklandı','#2e6b3a'); }catch(e){} }
   }
@@ -291,7 +292,8 @@ function raporTekille(sessiz){
 var _kaydetOrj=kaydet;
 kaydet=function(force){ try{ raporTekille(true); }catch(e){} return _kaydetOrj.apply(this,arguments); };
 // Açılıştan 20 sn sonra yönetici sekmesi eski mükerrerleri bir kez temizler ve buluta yazar
-setTimeout(function(){ try{ if(window.ROL==='yonetici' && raporTekille(false)>0){ kaydet(true); try{ rsayGuncelle(); }catch(e){} } }catch(e){} }, 20000);
+// (bulut verisi uygulanırken yapılan sessiz ayıklama buluta yazılmaz; burada toplam sayaca bakılıp bir kez yazılır)
+setTimeout(function(){ try{ raporTekille(true); var n=window._tekilleToplam||0; if(window.ROL==='yonetici' && n>0){ kaydet(true); try{ rsayGuncelle(); toast('🧹 '+n+' mükerrer rapor ayıklandı, buluta yazıldı','#2e6b3a'); }catch(e){} } }catch(e){} }, 20000);
 function filtre(tip){
   aktifFiltre = (aktifFiltre===tip) ? null : tip;
   document.querySelectorAll('.ibar').forEach(e=>e.classList.remove('aktif'));
