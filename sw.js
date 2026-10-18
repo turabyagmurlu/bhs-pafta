@@ -1,8 +1,8 @@
 /* BHS Service Worker v3 (PWA) — HTML: network-first (daima taze, offline'da cache);
    uygulama kabuğu (js, ikon, manifest, drone görseli): önbellek, arkada yenile. CDN/Firebase'e dokunulmaz. */
-const C='bhs-cache-v3';
+const C='bhs-cache-v4';
 const KABUK=['./','./index.html','./panel.html','./saha-raporlari.html','./hakedis.js','./guard.js','./isi.js',
-  './manifest.webmanifest','./icons/icon-192.png','./icons/icon-512.png','./icons/apple-touch-icon.png','./bhs-drone.jpg'];
+  './manifest.webmanifest','./icons/orge-192.png','./icons/orge-512.png','./icons/orge-apple-touch.png','./bhs-drone.jpg'];
 self.addEventListener('install', e=>{ e.waitUntil(caches.open(C).then(c=>Promise.allSettled(KABUK.map(u=>c.add(u)))).then(()=>self.skipWaiting())); });
 self.addEventListener('activate', e=>{ e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==C).map(k=>caches.delete(k)))).then(()=>self.clients.claim())); });
 self.addEventListener('fetch', e=>{
