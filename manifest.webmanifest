@@ -1,0 +1,25 @@
+{
+  "name": "BHS Peyzaj Pafta — Hillside Bodrum",
+  "short_name": "BHS Pafta",
+  "description": "Pano montaj durum paftası, saha raporları ve ilerleme panosu",
+  "id": "/bhs-pafta/",
+  "start_url": "/bhs-pafta/index.html?src=pwa",
+  "scope": "/bhs-pafta/",
+  "display": "standalone",
+  "orientation": "any",
+  "lang": "tr",
+  "dir": "ltr",
+  "background_color": "#0f1923",
+  "theme_color": "#15222e",
+  "categories": ["business", "productivity"],
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-192-maskable.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "icons/icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Saha Raporları", "short_name": "Raporlar", "url": "/bhs-pafta/saha-raporlari.html", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "İlerleme Panosu", "short_name": "Pano", "url": "/bhs-pafta/panel.html", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] }
+  ]
+}

@@ -1,4 +1,4 @@
-<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#15222e"><link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png"><link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <title>BHS İlerleme Panosu</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -139,8 +139,8 @@ async function yukle(){
   panos.forEach(linSay); dbs.forEach(linSay);
   var linYap=lin.cekildi;
   // besleme/kumanda
-  var bes={cekildi:0,bekliyor:0,top:0}, besMetraj=0, besTeyit=0;
-  function besSay(o){ var b=(o.besleme&&o.besleme.kablolar)||[]; b.forEach(function(k){ var s=k.durum||'bekliyor'; if(s==='cekildi'){bes.cekildi++;bes.top++;}else if(s==='revize'||s==='birlesti'){}else{bes.bekliyor++;bes.top++;} if(s==='cekildi'){ var _a=parseInt(k.adet,10)||1; if(k.teyit==='bekliyor'){ besTeyit+=pInt(k.mt)*(_a-1); _a=1; } besMetraj+=pInt(k.mt)*_a; } }); }
+  var bes={cekildi:0,bekliyor:0,top:0}, besMetraj=0, besTeyit=0;   // besTeyit: usta teyidi bekleyen ek metraj
+  function besSay(o){ var b=(o.besleme&&o.besleme.kablolar)||[]; b.forEach(function(k){ var s=k.durum||'bekliyor'; if(s==='cekildi'){bes.cekildi++;bes.top++;}else if(s==='revize'||s==='birlesti'){}else{bes.bekliyor++;bes.top++;} if(s==='cekildi'){ var _a=parseInt(k.adet,10)||1; if(k.teyit==='bekliyor'){_a=1;besTeyit+=pInt(k.mt)*((parseInt(k.adet,10)||1)-1);} besMetraj+=pInt(k.mt)*_a; } }); }
   panos.forEach(besSay); dbs.forEach(besSay);
   var _dbCab=[]; dbs.forEach(function(o){ var c=_cabOran(o,'db'); if(c!=null)_dbCab.push(c); });
   var dbKabPct=_dbCab.length?Math.round(_dbCab.reduce(function(a,b){return a+b;},0)/_dbCab.length*100):0;
